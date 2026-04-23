@@ -2,7 +2,7 @@
 
 A Scratch-style visual SQL query builder that runs entirely in your browser — no server, no setup, no SQL experience required.
 
-**[Try it live →](https://adammotherduckai.github.io/duck-query-kids/)**
+**[Try it live →](https://adamatmotherduck.github.io/duck-query-kids/)**
 
 ![DuckQuery Kids screenshot](src/assets/hero.png)
 
