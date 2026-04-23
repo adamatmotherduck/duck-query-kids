@@ -33,7 +33,7 @@ export function PaletteTableCard({ table }: { table: Table }) {
       style={style}
       {...listeners}
       {...attributes}
-      className={`group ${colors.bg} ${colors.border} border-2 rounded-xl px-3 py-2 select-none transition-shadow hover:shadow-md`}
+      className={`group ${colors.bg} ${colors.border} border rounded-xl px-3 py-2.5 select-none transition-shadow hover:shadow-md`}
     >
       {/* Always-visible: name + description */}
       <div className="flex items-center gap-2">
