@@ -41,7 +41,7 @@ export function PaletteTableCard({ table }: { table: Table }) {
         <span className={`font-bold text-sm leading-tight ${colors.text}`}>{table.label}</span>
       </div>
       {table.description && (
-        <p className="text-xs text-gray-500 mt-0.5 leading-tight line-clamp-1 pl-[18px]">
+        <p className="text-xs text-gray-500 mt-0.5 leading-tight pl-[18px]">
           {table.description}
         </p>
       )}
