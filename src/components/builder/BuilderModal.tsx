@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { X, Plus, Trash2, ChevronDown, ChevronRight, GripVertical, Pencil } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { X, Plus, Trash2, ChevronDown, ChevronRight, GripVertical, Pencil, Download, Upload, CheckCircle } from 'lucide-react';
 import type { Dataset } from '../../types/dataset';
 import type { CustomLesson, CustomProject, CustomProjectStep, Condition } from '../../types/builder';
-import { useCustomContent } from '../../hooks/useCustomContent';
+import { useCustomContent, type ContentBundle, isContentBundle } from '../../hooks/useCustomContent';
 import { ConditionBuilder } from './ConditionBuilder';
 import { describeCondition } from '../../utils/conditionCompiler';
 
@@ -280,11 +280,20 @@ function ProjectForm({
 
 // ── Main modal ────────────────────────────────────────────────────────────────
 
+type ImportState =
+  | { stage: 'idle' }
+  | { stage: 'preview'; bundle: ContentBundle }
+  | { stage: 'done'; lessonCount: number; projectCount: number }
+  | { stage: 'error'; message: string };
+
 export function BuilderModal({ datasets, activeDatasetId, onClose }: Props) {
   const [tab, setTab] = useState<Tab>('lessons');
   const [editingLesson, setEditingLesson] = useState<CustomLesson | null>(null);
   const [editingProject, setEditingProject] = useState<CustomProject | null>(null);
-  const { customLessons, customProjects, saveLesson, deleteLesson, saveProject, deleteProject } = useCustomContent();
+  const [importState, setImportState] = useState<ImportState>({ stage: 'idle' });
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { customLessons, customProjects, saveLesson, deleteLesson, saveProject, deleteProject, importBundle } = useCustomContent();
 
   const activeDataset = datasets.find((d) => d.id === activeDatasetId) ?? datasets[0];
   const datasetLessons = customLessons.filter((l) => l.datasetId === activeDatasetId);
@@ -298,6 +307,51 @@ export function BuilderModal({ datasets, activeDatasetId, onClose }: Props) {
   function handleSaveProject(p: CustomProject) {
     saveProject(p);
     setEditingProject(null);
+  }
+
+  // ── Export ──────────────────────────────────────────────────────────────────
+  function handleExport() {
+    const bundle: ContentBundle = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      lessons: customLessons,
+      projects: customProjects,
+    };
+    const json = JSON.stringify(bundle, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `duck-query-kids-content-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ── Import ──────────────────────────────────────────────────────────────────
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const parsed: unknown = JSON.parse(ev.target?.result as string);
+        if (!isContentBundle(parsed)) {
+          setImportState({ stage: 'error', message: 'File does not look like a duck-query-kids export.' });
+          return;
+        }
+        setImportState({ stage: 'preview', bundle: parsed });
+      } catch {
+        setImportState({ stage: 'error', message: 'Could not parse file — make sure it\'s a valid JSON export.' });
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function confirmImport(bundle: ContentBundle) {
+    importBundle(bundle);
+    setImportState({ stage: 'done', lessonCount: bundle.lessons.length, projectCount: bundle.projects.length });
+    setTimeout(() => setImportState({ stage: 'idle' }), 3000);
   }
 
   const TAB = (t: Tab) =>
@@ -317,10 +371,73 @@ export function BuilderModal({ datasets, activeDatasetId, onClose }: Props) {
               Custom content for <span className="font-semibold">{activeDataset?.emoji} {activeDataset?.name}</span>
             </p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
-            <X size={20} />
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Import/Export */}
+            <input ref={fileInputRef} type="file" accept=".json,application/json" className="hidden" onChange={handleFileChange} />
+
+            {importState.stage === 'done' ? (
+              <span className="flex items-center gap-1.5 text-xs text-green-600 font-semibold px-3 py-1.5 bg-green-50 rounded-lg">
+                <CheckCircle size={13} />
+                Imported {importState.lessonCount + importState.projectCount} items
+              </span>
+            ) : (
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                title="Import lessons and projects from a JSON file"
+                className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-indigo-600 px-3 py-1.5 rounded-lg border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 transition-colors"
+              >
+                <Upload size={13} /> Import
+              </button>
+            )}
+
+            <button
+              onClick={handleExport}
+              disabled={customLessons.length === 0 && customProjects.length === 0}
+              title="Export all custom lessons and projects as JSON"
+              className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-indigo-600 px-3 py-1.5 rounded-lg border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Download size={13} /> Export
+            </button>
+
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors ml-1">
+              <X size={20} />
+            </button>
+          </div>
         </div>
+
+        {/* Import preview banner */}
+        {importState.stage === 'preview' && (
+          <div className="px-6 py-3 bg-amber-50 border-b border-amber-100 flex items-center gap-4 flex-shrink-0">
+            <div className="flex-1 text-sm text-amber-800">
+              <span className="font-semibold">Import preview:</span>{' '}
+              {importState.bundle.lessons.length} lesson{importState.bundle.lessons.length !== 1 ? 's' : ''} and{' '}
+              {importState.bundle.projects.length} project{importState.bundle.projects.length !== 1 ? 's' : ''}.
+              {' '}Existing items with matching IDs will be updated.
+            </div>
+            <button
+              onClick={() => confirmImport(importState.bundle)}
+              className="flex-shrink-0 text-xs font-semibold bg-amber-500 text-white px-3 py-1.5 rounded-lg hover:bg-amber-600 transition-colors"
+            >
+              Confirm import
+            </button>
+            <button
+              onClick={() => setImportState({ stage: 'idle' })}
+              className="flex-shrink-0 text-xs text-amber-600 hover:text-amber-800 font-medium"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+
+        {/* Import error banner */}
+        {importState.stage === 'error' && (
+          <div className="px-6 py-3 bg-red-50 border-b border-red-100 flex items-center justify-between flex-shrink-0">
+            <span className="text-sm text-red-700">{importState.message}</span>
+            <button onClick={() => setImportState({ stage: 'idle' })} className="text-red-400 hover:text-red-600">
+              <X size={14} />
+            </button>
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="flex border-b border-gray-100 px-6 flex-shrink-0">

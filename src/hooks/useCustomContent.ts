@@ -13,8 +13,21 @@ function load<T>(key: string): T[] {
   }
 }
 
-function save<T>(key: string, items: T[]) {
+function persist<T>(key: string, items: T[]) {
   localStorage.setItem(key, JSON.stringify(items));
+}
+
+export interface ContentBundle {
+  version: number;
+  exportedAt: string;
+  lessons: CustomLesson[];
+  projects: CustomProject[];
+}
+
+function isContentBundle(data: unknown): data is ContentBundle {
+  if (!data || typeof data !== 'object') return false;
+  const d = data as Record<string, unknown>;
+  return Array.isArray(d['lessons']) && Array.isArray(d['projects']);
 }
 
 export function useCustomContent() {
@@ -27,7 +40,7 @@ export function useCustomContent() {
       const next = exists >= 0
         ? prev.map((l) => (l.id === lesson.id ? lesson : l))
         : [...prev, lesson];
-      save(LESSONS_KEY, next);
+      persist(LESSONS_KEY, next);
       return next;
     });
   }, []);
@@ -35,7 +48,7 @@ export function useCustomContent() {
   const deleteLesson = useCallback((id: string) => {
     setCustomLessons((prev) => {
       const next = prev.filter((l) => l.id !== id);
-      save(LESSONS_KEY, next);
+      persist(LESSONS_KEY, next);
       return next;
     });
   }, []);
@@ -46,7 +59,7 @@ export function useCustomContent() {
       const next = exists >= 0
         ? prev.map((p) => (p.id === project.id ? project : p))
         : [...prev, project];
-      save(PROJECTS_KEY, next);
+      persist(PROJECTS_KEY, next);
       return next;
     });
   }, []);
@@ -54,10 +67,35 @@ export function useCustomContent() {
   const deleteProject = useCallback((id: string) => {
     setCustomProjects((prev) => {
       const next = prev.filter((p) => p.id !== id);
-      save(PROJECTS_KEY, next);
+      persist(PROJECTS_KEY, next);
       return next;
     });
   }, []);
 
-  return { customLessons, customProjects, saveLesson, deleteLesson, saveProject, deleteProject };
+  // Upsert-merge imported content (matching IDs are overwritten, new IDs are added)
+  const importBundle = useCallback((bundle: ContentBundle) => {
+    setCustomLessons((prev) => {
+      const map = new Map(prev.map((l) => [l.id, l]));
+      bundle.lessons.forEach((l) => map.set(l.id, l));
+      const next = [...map.values()];
+      persist(LESSONS_KEY, next);
+      return next;
+    });
+    setCustomProjects((prev) => {
+      const map = new Map(prev.map((p) => [p.id, p]));
+      bundle.projects.forEach((p) => map.set(p.id, p));
+      const next = [...map.values()];
+      persist(PROJECTS_KEY, next);
+      return next;
+    });
+  }, []);
+
+  return {
+    customLessons, customProjects,
+    saveLesson, deleteLesson,
+    saveProject, deleteProject,
+    importBundle, isContentBundle,
+  };
 }
+
+export { isContentBundle };
