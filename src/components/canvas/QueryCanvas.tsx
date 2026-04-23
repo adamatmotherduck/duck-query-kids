@@ -30,6 +30,7 @@ interface Actions {
   updateOrderBy: (id: string, patch: Partial<Omit<OrderByConfig, 'id'>>) => void;
   removeOrderBy: (id: string) => void;
   setDistinct: (v: boolean) => void;
+  setLimit: (limit: number | null) => void;
   reset: () => void;
 }
 
@@ -154,7 +155,7 @@ export function QueryCanvas({ state, schemaMap, actions }: Props) {
         {/* Header row */}
         <div className="flex items-center gap-3 px-4 py-2 border-b border-gray-100">
           <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Clauses</span>
-          <div className="flex items-center gap-2 ml-auto">
+          <div className="flex items-center gap-3 ml-auto">
             <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
               <input
                 type="checkbox"
@@ -163,6 +164,20 @@ export function QueryCanvas({ state, schemaMap, actions }: Props) {
                 className="accent-indigo-500"
               />
               Unique rows only (DISTINCT)
+            </label>
+            <label className="flex items-center gap-1.5 text-xs text-gray-600">
+              <span className="font-medium">LIMIT</span>
+              <input
+                type="number"
+                min={1}
+                value={state.limit ?? ''}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  actions.setLimit(v === '' ? null : Math.max(1, parseInt(v, 10)));
+                }}
+                placeholder="∞"
+                className="w-16 text-xs border rounded px-1.5 py-1 text-center"
+              />
             </label>
           </div>
           <button

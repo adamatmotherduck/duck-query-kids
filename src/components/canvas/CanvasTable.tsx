@@ -1,7 +1,14 @@
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { X } from 'lucide-react';
-import type { CanvasTable as CanvasTableType, Table } from '../../types/query';
+import type { CanvasTable as CanvasTableType, ColumnType, Table } from '../../types/query';
+
+const TYPE_BADGE: Record<ColumnType, { label: string; cls: string }> = {
+  string:  { label: 'text', cls: 'bg-blue-100 text-blue-600' },
+  number:  { label: 'num',  cls: 'bg-emerald-100 text-emerald-600' },
+  date:    { label: 'date', cls: 'bg-amber-100 text-amber-700' },
+  boolean: { label: 'bool', cls: 'bg-purple-100 text-purple-600' },
+};
 
 const COLOR_CLASSES: Record<string, { header: string; border: string; check: string }> = {
   customers:    { header: 'bg-blue-500',   border: 'border-blue-400',  check: 'accent-blue-500'   },
@@ -73,7 +80,12 @@ export function CanvasTableBlock({ canvasTable, schema, onRemove, onToggleColumn
               >
                 {col.name}
               </span>
-              <span className="text-xs text-gray-300 group-hover:text-gray-400 font-mono">{col.type[0]}</span>
+              <span
+                title={col.type}
+                className={`text-[9px] px-1 py-0.5 rounded font-mono flex-shrink-0 leading-none ${TYPE_BADGE[col.type].cls}`}
+              >
+                {TYPE_BADGE[col.type].label}
+              </span>
               <button
                 onClick={() => onAddOrderBy(col.name)}
                 title="Sort by this column"

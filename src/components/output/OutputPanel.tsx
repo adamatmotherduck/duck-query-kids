@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { Copy, Check } from 'lucide-react';
 import type { QueryState, QueryRow, Table } from '../../types/query';
 import { generateSQL } from '../../utils/sqlGenerator';
 import { NORTHWIND_SCHEMA } from '../../data/northwind';
@@ -20,6 +21,7 @@ export function OutputPanel({ state }: Props) {
   const [loading, setLoading] = useState(false);
   const [plan, setPlan] = useState('');
   const [planLoading, setPlanLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const sql = generateSQL(state, NORTHWIND_SCHEMA);
@@ -88,7 +90,21 @@ export function OutputPanel({ state }: Props) {
         {tab === 'sql' && (
           <div className="h-full overflow-auto p-4">
             {sql ? (
-              <pre className="text-xs font-mono text-gray-800 bg-gray-50 rounded-lg p-4 border border-gray-200 whitespace-pre-wrap">{sql}</pre>
+              <div className="relative">
+                <button
+                  onClick={() => {
+                    void navigator.clipboard.writeText(sql);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 1500);
+                  }}
+                  title="Copy SQL"
+                  className="absolute top-2 right-2 flex items-center gap-1 text-xs px-2 py-1 rounded bg-white border border-gray-200 text-gray-500 hover:text-indigo-600 hover:border-indigo-300 transition-colors shadow-sm"
+                >
+                  {copied ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
+                  {copied ? 'Copied!' : 'Copy'}
+                </button>
+                <pre className="text-xs font-mono text-gray-800 bg-gray-50 rounded-lg p-4 border border-gray-200 whitespace-pre-wrap">{sql}</pre>
+              </div>
             ) : (
               <div className="text-gray-400 text-sm flex items-center justify-center h-full">
                 Drag a table onto the canvas to generate SQL

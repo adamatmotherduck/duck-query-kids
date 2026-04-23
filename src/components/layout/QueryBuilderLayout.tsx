@@ -11,7 +11,7 @@ import {
 import type { Table } from '../../types/query';
 import { NORTHWIND_SCHEMA } from '../../data/northwind';
 import { useQueryBuilder } from '../../hooks/useQueryBuilder';
-import { TablePalette } from '../palette/TablePalette';
+import { LeftSidebar } from './LeftSidebar';
 import { QueryCanvas } from '../canvas/QueryCanvas';
 import { OutputPanel } from '../output/OutputPanel';
 import { PaletteTableCard } from '../palette/PaletteTableCard';
@@ -91,6 +91,7 @@ export function QueryBuilderLayout() {
     updateOrderBy: qb.updateOrderBy,
     removeOrderBy: qb.removeOrderBy,
     setDistinct: qb.setDistinct,
+    setLimit: qb.setLimit,
     reset: qb.reset,
   };
 
@@ -99,7 +100,7 @@ export function QueryBuilderLayout() {
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="flex h-screen overflow-hidden bg-white">
-        <TablePalette />
+        <LeftSidebar state={qb.state} />
         <div className="flex-1 flex flex-col overflow-hidden">
           <QueryCanvas state={qb.state} schemaMap={SCHEMA_MAP} actions={actions} />
           <OutputPanel state={qb.state} />
