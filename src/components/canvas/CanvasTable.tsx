@@ -30,12 +30,13 @@ export function CanvasTableBlock({ canvasTable, schema, onRemove, onToggleColumn
     header: 'bg-gray-500', border: 'border-gray-400', check: 'accent-gray-500',
   };
 
+  // When dragging, hide the source — DragOverlay is the ghost above all stacking contexts.
   const style: React.CSSProperties = {
     position: 'absolute',
     left: canvasTable.position.x,
     top: canvasTable.position.y,
     transform: CSS.Translate.toString(transform),
-    zIndex: transform ? 50 : 10,
+    opacity: transform ? 0 : 1,
     width: 200,
   };
 

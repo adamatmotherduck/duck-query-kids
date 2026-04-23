@@ -21,9 +21,10 @@ export function PaletteTableCard({ table }: { table: Table }) {
     bg: 'bg-gray-50', border: 'border-gray-300', text: 'text-gray-800', dot: 'bg-gray-400',
   };
 
+  // When dragging, make the source invisible — the DragOverlay is the visual ghost.
   const style = {
     transform: CSS.Translate.toString(transform),
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0 : 1,
     cursor: isDragging ? 'grabbing' : 'grab',
   };
 

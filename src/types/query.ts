@@ -44,12 +44,16 @@ export interface CanvasTable {
   selectedColumns: string[];
 }
 
+export interface JoinCondition {
+  leftColumn: string;
+  rightColumn: string;
+}
+
 export interface Join {
   id: string;
   leftTableId: string;
-  leftColumn: string;
   rightTableId: string;
-  rightColumn: string;
+  conditions: JoinCondition[];
   joinType: JoinType;
 }
 

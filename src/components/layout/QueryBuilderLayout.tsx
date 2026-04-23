@@ -1,9 +1,12 @@
+import { useState } from 'react';
 import {
   DndContext,
+  DragOverlay,
   PointerSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragStartEvent,
 } from '@dnd-kit/core';
 import type { Table } from '../../types/query';
 import { NORTHWIND_SCHEMA } from '../../data/northwind';
@@ -11,6 +14,7 @@ import { useQueryBuilder } from '../../hooks/useQueryBuilder';
 import { TablePalette } from '../palette/TablePalette';
 import { QueryCanvas } from '../canvas/QueryCanvas';
 import { OutputPanel } from '../output/OutputPanel';
+import { PaletteTableCard } from '../palette/PaletteTableCard';
 
 const SCHEMA_MAP: Record<string, Table> = Object.fromEntries(
   NORTHWIND_SCHEMA.map((t) => [t.name, t]),
@@ -24,7 +28,26 @@ export function QueryBuilderLayout() {
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
 
+  // Track the active drag item so DragOverlay can render a ghost
+  const [activeTableName, setActiveTableName] = useState<string | null>(null);
+  const [activeCanvasLabel, setActiveCanvasLabel] = useState<string | null>(null);
+
+  function handleDragStart(event: DragStartEvent) {
+    const data = event.active.data.current;
+    if (data?.tableName) {
+      setActiveTableName(data.tableName as string);
+      setActiveCanvasLabel(null);
+    } else if (data?.type === 'canvas-table') {
+      const ct = qb.state.canvasTables.find((t) => t.id === data.tableId);
+      setActiveCanvasLabel(ct ? (SCHEMA_MAP[ct.tableName]?.label ?? ct.tableName) : null);
+      setActiveTableName(null);
+    }
+  }
+
   function handleDragEnd(event: DragEndEvent) {
+    setActiveTableName(null);
+    setActiveCanvasLabel(null);
+
     const { over, active, delta } = event;
 
     // Dropping palette card onto canvas
@@ -71,15 +94,31 @@ export function QueryBuilderLayout() {
     reset: qb.reset,
   };
 
+  const overlayTable = activeTableName ? SCHEMA_MAP[activeTableName] : null;
+
   return (
-    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="flex h-screen overflow-hidden bg-white">
         <TablePalette />
         <div className="flex-1 flex flex-col overflow-hidden">
           <QueryCanvas state={qb.state} schemaMap={SCHEMA_MAP} actions={actions} />
-          <OutputPanel state={qb.state} schemaMap={SCHEMA_MAP} />
+          <OutputPanel state={qb.state} />
         </div>
       </div>
+
+      {/* DragOverlay renders in a portal above all stacking contexts */}
+      <DragOverlay dropAnimation={null}>
+        {overlayTable && (
+          <div className="opacity-90 pointer-events-none">
+            <PaletteTableCard table={overlayTable} />
+          </div>
+        )}
+        {activeCanvasLabel && (
+          <div className="bg-white border-2 border-indigo-400 rounded-xl shadow-2xl px-4 py-2 text-sm font-bold text-indigo-700 opacity-90 pointer-events-none">
+            {activeCanvasLabel}
+          </div>
+        )}
+      </DragOverlay>
     </DndContext>
   );
 }

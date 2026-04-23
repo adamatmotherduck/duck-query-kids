@@ -140,7 +140,11 @@ function buildFromClause(
                : j.joinType === 'RIGHT' ? 'RIGHT JOIN'
                : 'FULL OUTER JOIN';
 
-      sql += `\n${kw} ${newTable.tableName} AS ${newAlias}\n  ON ${lAlias}.${j.leftColumn} = ${rAlias}.${j.rightColumn}`;
+      const onClauses = j.conditions
+        .filter((c) => c.leftColumn && c.rightColumn)
+        .map((c) => `${lAlias}.${c.leftColumn} = ${rAlias}.${c.rightColumn}`)
+        .join('\n    AND ');
+      sql += `\n${kw} ${newTable.tableName} AS ${newAlias}\n  ON ${onClauses || 'TRUE'}`;
       introduced.add(newId);
       pending.splice(i, 1);
     }

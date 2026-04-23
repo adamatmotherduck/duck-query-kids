@@ -3,6 +3,7 @@ import type {
   QueryState,
   CanvasTable,
   Join,
+  JoinCondition,
   Filter,
   GroupByConfig,
   HavingFilter,
@@ -28,7 +29,7 @@ type Action =
   | { type: 'REMOVE_TABLE'; id: string }
   | { type: 'MOVE_TABLE'; id: string; position: { x: number; y: number } }
   | { type: 'TOGGLE_COLUMN'; tableId: string; column: string }
-  | { type: 'ADD_JOIN'; leftTableId: string; leftColumn: string; rightTableId: string; rightColumn: string; joinType: JoinType }
+  | { type: 'ADD_JOIN'; leftTableId: string; rightTableId: string; conditions: JoinCondition[]; joinType: JoinType }
   | { type: 'UPDATE_JOIN'; id: string; patch: Partial<Omit<Join, 'id'>> }
   | { type: 'REMOVE_JOIN'; id: string }
   | { type: 'ADD_FILTER' }
@@ -105,9 +106,8 @@ function reducer(state: QueryState, action: Action): QueryState {
       const newJoin: Join = {
         id: uid(),
         leftTableId: action.leftTableId,
-        leftColumn: action.leftColumn,
         rightTableId: action.rightTableId,
-        rightColumn: action.rightColumn,
+        conditions: action.conditions,
         joinType: action.joinType,
       };
       return { ...state, joins: [...state.joins, newJoin] };
@@ -207,7 +207,13 @@ export function useQueryBuilder() {
     leftTableId: string, leftColumn: string,
     rightTableId: string, rightColumn: string,
     joinType: JoinType = 'INNER',
-  ) => dispatch({ type: 'ADD_JOIN', leftTableId, leftColumn, rightTableId, rightColumn, joinType }), []);
+  ) => dispatch({
+    type: 'ADD_JOIN',
+    leftTableId,
+    rightTableId,
+    conditions: [{ leftColumn, rightColumn }],
+    joinType,
+  }), []);
   const updateJoin = useCallback((id: string, patch: Partial<Omit<Join, 'id'>>) =>
     dispatch({ type: 'UPDATE_JOIN', id, patch }), []);
   const removeJoin = useCallback((id: string) => dispatch({ type: 'REMOVE_JOIN', id }), []);
