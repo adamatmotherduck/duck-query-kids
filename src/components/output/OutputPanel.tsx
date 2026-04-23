@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Copy, Check } from 'lucide-react';
 import type { QueryState, QueryRow } from '../../types/query';
 import type { Dataset } from '../../types/dataset';
+import type { Lesson } from '../../types/lesson';
+import type { Project } from '../../types/project';
 import { generateSQL } from '../../utils/sqlGenerator';
 import { useDuckDBContext } from '../../context/DuckDBContext';
 import { ResultsGrid } from './ResultsGrid';
@@ -13,9 +15,11 @@ type Tab = 'results' | 'sql' | 'plan' | 'lessons' | 'project';
 interface Props {
   state: QueryState;
   activeDataset: Dataset;
+  lessons: Lesson[];
+  projects: Project[];
 }
 
-export function OutputPanel({ state, activeDataset }: Props) {
+export function OutputPanel({ state, activeDataset, lessons, projects }: Props) {
   const { executeQuery, explainQuery } = useDuckDBContext();
   const [tab, setTab] = useState<Tab>('results');
   const [rows, setRows] = useState<QueryRow[]>([]);
@@ -138,14 +142,14 @@ export function OutputPanel({ state, activeDataset }: Props) {
         {tab === 'lessons' && (
           <LessonPanel
             state={state}
-            lessons={activeDataset.lessons}
+            lessons={lessons}
             storageKey={`duck-query-kids-completed-${activeDataset.id}`}
           />
         )}
         {tab === 'project' && (
           <ProjectPanel
             state={state}
-            projects={activeDataset.projects}
+            projects={projects}
           />
         )}
       </div>

@@ -1,3 +1,4 @@
+import { Pencil } from 'lucide-react';
 import type { Table } from '../../types/query';
 import type { Dataset } from '../../types/dataset';
 import { PaletteTableCard } from './PaletteTableCard';
@@ -8,13 +9,23 @@ interface Props {
   activeDatasetId: string;
   isLoadingDataset: boolean;
   onSwitchDataset: (id: string) => void;
+  onOpenBuilder: () => void;
 }
 
-export function TablePalette({ schema, datasets, activeDatasetId, isLoadingDataset, onSwitchDataset }: Props) {
+export function TablePalette({ schema, datasets, activeDatasetId, isLoadingDataset, onSwitchDataset, onOpenBuilder }: Props) {
   return (
     <div className="w-56 flex-shrink-0 bg-gray-50 border-r border-gray-200 overflow-y-auto flex flex-col">
       <div className="p-3 border-b border-gray-200 bg-white sticky top-0 z-10">
-        <h2 className="font-bold text-gray-700 text-sm">📦 Tables</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="font-bold text-gray-700 text-sm">📦 Tables</h2>
+          <button
+            onClick={onOpenBuilder}
+            title="Open lesson & project builder"
+            className="flex items-center gap-1 text-xs text-gray-400 hover:text-indigo-600 transition-colors px-1.5 py-1 rounded hover:bg-indigo-50"
+          >
+            <Pencil size={12} /> Build
+          </button>
+        </div>
         <p className="text-xs text-gray-400 mt-0.5">Drag onto canvas →</p>
         <select
           value={activeDatasetId}

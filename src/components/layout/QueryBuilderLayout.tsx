@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -9,20 +9,28 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core';
 import type { Table } from '../../types/query';
+import type { Lesson } from '../../types/lesson';
+import type { Project } from '../../types/project';
 import { ALL_DATASETS } from '../../data/datasets';
 import { useDuckDBContext } from '../../context/DuckDBContext';
 import { useQueryBuilder } from '../../hooks/useQueryBuilder';
+import { useCustomContent } from '../../hooks/useCustomContent';
+import { compileCondition } from '../../utils/conditionCompiler';
 import { TablePalette } from '../palette/TablePalette';
 import { QueryCanvas } from '../canvas/QueryCanvas';
 import { ClausesPanel } from '../canvas/ClausesPanel';
 import { OutputPanel } from '../output/OutputPanel';
 import { PaletteTableCard } from '../palette/PaletteTableCard';
+import { BuilderModal } from '../builder/BuilderModal';
 
 const DROP_OFFSET = 60;
 
 export function QueryBuilderLayout() {
   const { activeDataset, switchDataset, isLoadingDataset } = useDuckDBContext();
   const qb = useQueryBuilder();
+  const { customLessons, customProjects } = useCustomContent();
+  const [builderOpen, setBuilderOpen] = useState(false);
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
@@ -30,6 +38,39 @@ export function QueryBuilderLayout() {
   const schemaMap: Record<string, Table> = Object.fromEntries(
     activeDataset.schema.map((t) => [t.name, t]),
   );
+
+  // Merge dataset lessons/projects with compiled custom content
+  const lessons: Lesson[] = useMemo(() => {
+    const custom = customLessons
+      .filter((l) => l.datasetId === activeDataset.id)
+      .map((l): Lesson => ({
+        id: l.id,
+        title: l.title,
+        concept: l.concept,
+        description: l.description,
+        hints: l.hints,
+        check: compileCondition(l.condition),
+      }));
+    return [...activeDataset.lessons, ...custom];
+  }, [activeDataset, customLessons]);
+
+  const projects: Project[] = useMemo(() => {
+    const custom = customProjects
+      .filter((p) => p.datasetId === activeDataset.id)
+      .map((p): Project => ({
+        id: p.id,
+        title: p.title,
+        description: p.description,
+        steps: p.steps.map((s) => ({
+          id: s.id,
+          title: s.title,
+          description: s.description,
+          hints: s.hints,
+          check: compileCondition(s.condition),
+        })),
+      }));
+    return [...activeDataset.projects, ...custom];
+  }, [activeDataset, customProjects]);
 
   const [activeTableName, setActiveTableName] = useState<string | null>(null);
   const [activeCanvasLabel, setActiveCanvasLabel] = useState<string | null>(null);
@@ -105,41 +146,57 @@ export function QueryBuilderLayout() {
   }
 
   return (
-    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className="flex h-screen overflow-hidden bg-white">
-        <TablePalette
-          schema={activeDataset.schema}
-          datasets={ALL_DATASETS}
-          activeDatasetId={activeDataset.id}
-          isLoadingDataset={isLoadingDataset}
-          onSwitchDataset={handleSwitchDataset}
-        />
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <QueryCanvas
-            state={qb.state}
-            schemaMap={schemaMap}
-            foreignKeys={activeDataset.foreignKeys}
-            actions={actions}
+    <>
+      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        <div className="flex h-screen overflow-hidden bg-white">
+          <TablePalette
+            schema={activeDataset.schema}
+            datasets={ALL_DATASETS}
+            activeDatasetId={activeDataset.id}
+            isLoadingDataset={isLoadingDataset}
+            onSwitchDataset={handleSwitchDataset}
+            onOpenBuilder={() => setBuilderOpen(true)}
           />
-          <div className="flex border-t border-gray-200 flex-shrink-0">
-            <ClausesPanel state={qb.state} schemaMap={schemaMap} actions={actions} />
-            <OutputPanel state={qb.state} activeDataset={activeDataset} />
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <QueryCanvas
+              state={qb.state}
+              schemaMap={schemaMap}
+              foreignKeys={activeDataset.foreignKeys}
+              actions={actions}
+            />
+            <div className="flex border-t border-gray-200 flex-shrink-0">
+              <ClausesPanel state={qb.state} schemaMap={schemaMap} actions={actions} />
+              <OutputPanel
+                state={qb.state}
+                activeDataset={activeDataset}
+                lessons={lessons}
+                projects={projects}
+              />
+            </div>
           </div>
         </div>
-      </div>
 
-      <DragOverlay dropAnimation={null}>
-        {overlayTable && (
-          <div className="opacity-90 pointer-events-none">
-            <PaletteTableCard table={overlayTable} />
-          </div>
-        )}
-        {activeCanvasLabel && (
-          <div className="bg-white border-2 border-indigo-400 rounded-xl shadow-2xl px-4 py-2 text-sm font-bold text-indigo-700 opacity-90 pointer-events-none">
-            {activeCanvasLabel}
-          </div>
-        )}
-      </DragOverlay>
-    </DndContext>
+        <DragOverlay dropAnimation={null}>
+          {overlayTable && (
+            <div className="opacity-90 pointer-events-none">
+              <PaletteTableCard table={overlayTable} />
+            </div>
+          )}
+          {activeCanvasLabel && (
+            <div className="bg-white border-2 border-indigo-400 rounded-xl shadow-2xl px-4 py-2 text-sm font-bold text-indigo-700 opacity-90 pointer-events-none">
+              {activeCanvasLabel}
+            </div>
+          )}
+        </DragOverlay>
+      </DndContext>
+
+      {builderOpen && (
+        <BuilderModal
+          datasets={ALL_DATASETS}
+          activeDatasetId={activeDataset.id}
+          onClose={() => setBuilderOpen(false)}
+        />
+      )}
+    </>
   );
 }
