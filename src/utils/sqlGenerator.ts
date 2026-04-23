@@ -67,6 +67,26 @@ export function renderAggregate(
   }
 }
 
+function isFilterComplete(f: Filter): boolean {
+  if (!f.column) return false;
+  if (f.operator === 'IS NULL' || f.operator === 'IS NOT NULL') return true;
+  return f.value.trim() !== '';
+}
+
+function isGroupByComplete(g: GroupByConfig): boolean {
+  return g.column !== '';
+}
+
+function isHavingComplete(h: HavingFilter): boolean {
+  if (h.value.trim() === '') return false;
+  if (h.aggregate !== 'COUNT_STAR' && h.column === '') return false;
+  return true;
+}
+
+function isOrderByComplete(o: OrderByConfig): boolean {
+  return o.column !== '';
+}
+
 function buildSelectClause(
   canvasTables: CanvasTable[],
   groupBy: GroupByConfig[],
@@ -75,9 +95,10 @@ function buildSelectClause(
 ): string {
   const prefix = distinct ? 'SELECT DISTINCT' : 'SELECT';
   const terms: string[] = [];
+  const completeGroupBy = groupBy.filter(isGroupByComplete);
 
-  if (groupBy.length > 0) {
-    for (const g of groupBy) {
+  if (completeGroupBy.length > 0) {
+    for (const g of completeGroupBy) {
       const alias = aliasMap.get(g.tableId) ?? g.tableId;
       const qcol = `${alias}.${g.column}`;
       if (g.aggregate) {
@@ -166,8 +187,9 @@ function buildWhereClause(
   tablesByName: Map<string, Table>,
   aliasMap: Map<string, string>,
 ): string {
-  if (filters.length === 0) return '';
-  const predicates = filters.map((f) => {
+  const complete = filters.filter(isFilterComplete);
+  if (complete.length === 0) return '';
+  const predicates = complete.map((f) => {
     const alias = aliasMap.get(f.tableId) ?? f.tableId;
     const colType = getColumnType(f.tableId, f.column, canvasTables, tablesByName);
     const lhs = `${alias}.${f.column}`;
@@ -178,6 +200,7 @@ function buildWhereClause(
   return predicates.length === 1
     ? `WHERE ${predicates[0]}`
     : `WHERE\n  ${predicates.join('\n  AND ')}`;
+
 }
 
 function buildGroupByClause(
@@ -185,7 +208,7 @@ function buildGroupByClause(
   aliasMap: Map<string, string>,
 ): string {
   const keys = groupBy
-    .filter((g) => !g.aggregate)
+    .filter((g) => isGroupByComplete(g) && !g.aggregate)
     .map((g) => `${aliasMap.get(g.tableId) ?? g.tableId}.${g.column}`);
   return keys.length ? `GROUP BY\n  ${keys.join(',\n  ')}` : '';
 }
@@ -194,8 +217,9 @@ function buildHavingClause(
   having: HavingFilter[],
   aliasMap: Map<string, string>,
 ): string {
-  if (having.length === 0) return '';
-  const predicates = having.map((h) => {
+  const complete = having.filter(isHavingComplete);
+  if (complete.length === 0) return '';
+  const predicates = complete.map((h) => {
     const alias = aliasMap.get(h.tableId) ?? h.tableId;
     const qcol = `${alias}.${h.column}`;
     const expr = renderAggregate(h.aggregate, qcol);
@@ -211,8 +235,9 @@ function buildOrderByClause(
   groupBy: GroupByConfig[],
   aliasMap: Map<string, string>,
 ): string {
-  if (orderBy.length === 0) return '';
-  const terms = orderBy.map((o) => {
+  const complete = orderBy.filter(isOrderByComplete);
+  if (complete.length === 0) return '';
+  const terms = complete.map((o) => {
     // If this column is an aggregate output, use its alias
     const aggConfig = groupBy.find((g) => g.tableId === o.tableId && g.column === o.column && g.aggregate);
     if (aggConfig) {
