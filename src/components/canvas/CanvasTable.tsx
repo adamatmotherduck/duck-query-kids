@@ -1,7 +1,7 @@
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { X } from 'lucide-react';
-import type { CanvasTable as CanvasTableType, ColumnType, Table } from '../../types/query';
+import { X, GripVertical } from 'lucide-react';
+import type { CanvasTable as CanvasTableType, ColumnType, Table, Column } from '../../types/query';
 
 const TYPE_BADGE: Record<ColumnType, { label: string; cls: string }> = {
   string:  { label: 'text', cls: 'bg-blue-100 text-blue-600' },
@@ -34,6 +34,55 @@ const COLOR_CLASSES: Record<string, { header: string; border: string; check: str
   people:       { header: 'bg-cyan-500',    border: 'border-cyan-400',    check: 'accent-cyan-500'    },
   directors:    { header: 'bg-fuchsia-500', border: 'border-fuchsia-400', check: 'accent-fuchsia-500' },
 };
+
+function DraggableColumnRow({
+  col, canvasTableId, checked, colors, onToggle, onAddOrderBy,
+}: {
+  col: Column; canvasTableId: string; checked: boolean;
+  colors: { check: string }; onToggle: (c: string) => void; onAddOrderBy: (c: string) => void;
+}) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `col:${canvasTableId}:${col.name}`,
+    data: { type: 'column', tableId: canvasTableId, columnName: col.name },
+  });
+  return (
+    <div ref={setNodeRef} className={`flex items-center gap-1.5 py-0.5 group ${isDragging ? 'opacity-30' : ''}`}>
+      <span
+        {...listeners}
+        {...attributes}
+        title="Drag to computed column"
+        className="cursor-grab active:cursor-grabbing text-gray-300 hover:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+      >
+        <GripVertical size={10} />
+      </span>
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={() => onToggle(col.name)}
+        className={`${colors.check} cursor-pointer flex-shrink-0`}
+      />
+      <span
+        className="text-xs font-mono text-gray-700 flex-1 cursor-pointer select-none min-w-0 truncate"
+        onClick={() => onToggle(col.name)}
+      >
+        {col.name}
+      </span>
+      <span
+        title={col.type}
+        className={`text-[9px] px-1 py-0.5 rounded font-mono flex-shrink-0 leading-none ${TYPE_BADGE[col.type].cls}`}
+      >
+        {TYPE_BADGE[col.type].label}
+      </span>
+      <button
+        onClick={() => onAddOrderBy(col.name)}
+        title="Sort by this column"
+        className="text-gray-300 hover:text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex-shrink-0"
+      >
+        ↕
+      </button>
+    </div>
+  );
+}
 
 interface Props {
   canvasTable: CanvasTableType;
@@ -80,38 +129,17 @@ export function CanvasTableBlock({ canvasTable, schema, onRemove, onToggleColumn
         </button>
       </div>
       <div className="p-2 max-h-64 overflow-y-auto">
-        {schema.columns.map((col) => {
-          const checked = canvasTable.selectedColumns.includes(col.name);
-          return (
-            <div key={col.name} className="flex items-center gap-2 py-0.5 group">
-              <input
-                type="checkbox"
-                checked={checked}
-                onChange={() => onToggleColumn(col.name)}
-                className={`${colors.check} cursor-pointer`}
-              />
-              <span
-                className="text-xs font-mono text-gray-700 flex-1 cursor-pointer select-none"
-                onClick={() => onToggleColumn(col.name)}
-              >
-                {col.name}
-              </span>
-              <span
-                title={col.type}
-                className={`text-[9px] px-1 py-0.5 rounded font-mono flex-shrink-0 leading-none ${TYPE_BADGE[col.type].cls}`}
-              >
-                {TYPE_BADGE[col.type].label}
-              </span>
-              <button
-                onClick={() => onAddOrderBy(col.name)}
-                title="Sort by this column"
-                className="text-gray-300 hover:text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
-              >
-                ↕
-              </button>
-            </div>
-          );
-        })}
+        {schema.columns.map((col) => (
+          <DraggableColumnRow
+            key={col.name}
+            col={col}
+            canvasTableId={canvasTable.id}
+            checked={canvasTable.selectedColumns.includes(col.name)}
+            colors={colors}
+            onToggle={onToggleColumn}
+            onAddOrderBy={onAddOrderBy}
+          />
+        ))}
       </div>
     </div>
   );

@@ -8,6 +8,8 @@ import type {
   GroupByConfig,
   HavingFilter,
   OrderByConfig,
+  ComputedColumn,
+  ColumnRef,
   JoinType,
   FilterOperator,
   AggregateFunction,
@@ -20,6 +22,7 @@ const initialState: QueryState = {
   groupBy: [],
   having: [],
   orderBy: [],
+  computedColumns: [],
   distinct: false,
   limit: 100,
 };
@@ -44,6 +47,10 @@ type Action =
   | { type: 'ADD_ORDER_BY'; tableId: string; column: string }
   | { type: 'UPDATE_ORDER_BY'; id: string; patch: Partial<Omit<OrderByConfig, 'id'>> }
   | { type: 'REMOVE_ORDER_BY'; id: string }
+  | { type: 'ADD_COMPUTED_COLUMN' }
+  | { type: 'UPDATE_COMPUTED_COLUMN'; id: string; patch: Partial<Omit<ComputedColumn, 'id'>> }
+  | { type: 'SET_COMPUTED_SLOT'; id: string; slot: string; ref: ColumnRef }
+  | { type: 'REMOVE_COMPUTED_COLUMN'; id: string }
   | { type: 'SET_DISTINCT'; distinct: boolean }
   | { type: 'SET_LIMIT'; limit: number | null }
   | { type: 'RESET' };
@@ -182,6 +189,38 @@ function reducer(state: QueryState, action: Action): QueryState {
       };
     case 'REMOVE_ORDER_BY':
       return { ...state, orderBy: state.orderBy.filter((o) => o.id !== action.id) };
+    case 'ADD_COMPUTED_COLUMN': {
+      const newCC: ComputedColumn = {
+        id: uid(),
+        alias: '',
+        expr: { kind: 'arithmetic', left: null, op: '+', right: null },
+      };
+      return { ...state, computedColumns: [...state.computedColumns, newCC] };
+    }
+    case 'UPDATE_COMPUTED_COLUMN':
+      return {
+        ...state,
+        computedColumns: state.computedColumns.map((cc) =>
+          cc.id === action.id ? { ...cc, ...action.patch } : cc,
+        ),
+      };
+    case 'SET_COMPUTED_SLOT':
+      return {
+        ...state,
+        computedColumns: state.computedColumns.map((cc) => {
+          if (cc.id !== action.id) return cc;
+          const e = cc.expr;
+          if ((e.kind === 'arithmetic' || e.kind === 'concat') && (action.slot === 'left' || action.slot === 'right')) {
+            return { ...cc, expr: { ...e, [action.slot]: action.ref } };
+          }
+          if ((e.kind === 'fn' || e.kind === 'date_extract') && action.slot === 'col') {
+            return { ...cc, expr: { ...e, col: action.ref } };
+          }
+          return cc;
+        }),
+      };
+    case 'REMOVE_COMPUTED_COLUMN':
+      return { ...state, computedColumns: state.computedColumns.filter((cc) => cc.id !== action.id) };
     case 'SET_DISTINCT':
       return { ...state, distinct: action.distinct };
     case 'SET_LIMIT':
@@ -237,6 +276,12 @@ export function useQueryBuilder() {
   const setDistinct = useCallback((distinct: boolean) => dispatch({ type: 'SET_DISTINCT', distinct }), []);
   const setLimit = useCallback((limit: number | null) => dispatch({ type: 'SET_LIMIT', limit }), []);
   const reset = useCallback(() => dispatch({ type: 'RESET' }), []);
+  const addComputedColumn = useCallback(() => dispatch({ type: 'ADD_COMPUTED_COLUMN' }), []);
+  const updateComputedColumn = useCallback((id: string, patch: Partial<Omit<ComputedColumn, 'id'>>) =>
+    dispatch({ type: 'UPDATE_COMPUTED_COLUMN', id, patch }), []);
+  const setComputedSlot = useCallback((id: string, slot: string, ref: ColumnRef) =>
+    dispatch({ type: 'SET_COMPUTED_SLOT', id, slot, ref }), []);
+  const removeComputedColumn = useCallback((id: string) => dispatch({ type: 'REMOVE_COMPUTED_COLUMN', id }), []);
 
   return {
     state,
@@ -246,6 +291,7 @@ export function useQueryBuilder() {
     addGroupBy, updateGroupBy, removeGroupBy,
     addHaving, updateHaving, removeHaving,
     addOrderBy, updateOrderBy, removeOrderBy,
+    addComputedColumn, updateComputedColumn, setComputedSlot, removeComputedColumn,
     setDistinct, setLimit, reset,
   };
 }

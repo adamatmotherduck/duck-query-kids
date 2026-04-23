@@ -90,6 +90,23 @@ export interface HavingFilter {
   value: string;
 }
 
+export interface ColumnRef {
+  tableId: string;
+  columnName: string;
+}
+
+export type ComputedExpr =
+  | { kind: 'arithmetic'; left: ColumnRef | null; op: '+' | '-' | '*' | '/'; right: ColumnRef | null }
+  | { kind: 'fn'; fn: 'UPPER' | 'LOWER' | 'TRIM' | 'LENGTH' | 'ROUND' | 'ABS'; col: ColumnRef | null }
+  | { kind: 'concat'; left: ColumnRef | null; sep: string; right: ColumnRef | null }
+  | { kind: 'date_extract'; part: 'YEAR' | 'MONTH' | 'DAY'; col: ColumnRef | null };
+
+export interface ComputedColumn {
+  id: string;
+  alias: string;
+  expr: ComputedExpr;
+}
+
 export interface QueryState {
   canvasTables: CanvasTable[];
   joins: Join[];
@@ -97,6 +114,7 @@ export interface QueryState {
   groupBy: GroupByConfig[];
   having: HavingFilter[];
   orderBy: OrderByConfig[];
+  computedColumns: ComputedColumn[];
   distinct: boolean;
   limit: number | null;
 }

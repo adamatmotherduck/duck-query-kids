@@ -1,11 +1,12 @@
 import { Plus, RotateCcw } from 'lucide-react';
 import type {
-  QueryState, Table, Filter, GroupByConfig, HavingFilter, OrderByConfig,
+  QueryState, Table, Filter, GroupByConfig, HavingFilter, OrderByConfig, ComputedColumn,
 } from '../../types/query';
 import { FilterRow } from './FilterRow';
 import { GroupByRow } from './GroupByRow';
 import { HavingRow } from './HavingRow';
 import { OrderByRow } from './OrderByRow';
+import { ComputedColumnRow } from './ComputedColumnRow';
 
 interface Actions {
   addFilter: () => void;
@@ -20,6 +21,9 @@ interface Actions {
   addOrderBy: (tableId: string, col: string) => void;
   updateOrderBy: (id: string, patch: Partial<Omit<OrderByConfig, 'id'>>) => void;
   removeOrderBy: (id: string) => void;
+  addComputedColumn: () => void;
+  updateComputedColumn: (id: string, patch: Partial<Omit<ComputedColumn, 'id'>>) => void;
+  removeComputedColumn: (id: string) => void;
   setDistinct: (v: boolean) => void;
   setLimit: (limit: number | null) => void;
   reset: () => void;
@@ -151,6 +155,24 @@ export function ClausesPanel({ state, schemaMap, actions }: Props) {
           className="text-xs text-sky-600 hover:text-sky-700 flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed w-fit"
         >
           <Plus size={12} /> Add ORDER BY
+        </button>
+
+        {state.computedColumns.map((cc) => (
+          <ComputedColumnRow
+            key={cc.id}
+            cc={cc}
+            canvasTables={state.canvasTables}
+            schemas={schemaMap}
+            onUpdate={(patch) => actions.updateComputedColumn(cc.id, patch)}
+            onRemove={() => actions.removeComputedColumn(cc.id)}
+          />
+        ))}
+        <button
+          disabled={state.canvasTables.length === 0}
+          onClick={actions.addComputedColumn}
+          className="text-xs text-indigo-600 hover:text-indigo-700 flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed w-fit"
+        >
+          <Plus size={12} /> Add computed column
         </button>
       </div>
     </div>

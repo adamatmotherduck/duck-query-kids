@@ -96,22 +96,30 @@ export function QueryBuilderLayout() {
 
   const [activeTableName, setActiveTableName] = useState<string | null>(null);
   const [activeCanvasLabel, setActiveCanvasLabel] = useState<string | null>(null);
+  const [activeColumnLabel, setActiveColumnLabel] = useState<string | null>(null);
 
   function handleDragStart(event: DragStartEvent) {
     const data = event.active.data.current;
     if (data?.tableName) {
       setActiveTableName(data.tableName as string);
       setActiveCanvasLabel(null);
+      setActiveColumnLabel(null);
     } else if (data?.type === 'canvas-table') {
       const ct = qb.state.canvasTables.find((t) => t.id === data.tableId);
       setActiveCanvasLabel(ct ? (schemaMap[ct.tableName]?.label ?? ct.tableName) : null);
       setActiveTableName(null);
+      setActiveColumnLabel(null);
+    } else if (data?.type === 'column') {
+      setActiveColumnLabel(data.columnName as string);
+      setActiveTableName(null);
+      setActiveCanvasLabel(null);
     }
   }
 
   function handleDragEnd(event: DragEndEvent) {
     setActiveTableName(null);
     setActiveCanvasLabel(null);
+    setActiveColumnLabel(null);
 
     const { over, active, delta } = event;
 
@@ -121,6 +129,20 @@ export function QueryBuilderLayout() {
       const x = Math.max(10, (active.rect.current.translated?.left ?? rect.left) - rect.left);
       const y = Math.max(10, (active.rect.current.translated?.top ?? rect.top) - rect.top + DROP_OFFSET);
       qb.dropTable(tableName, { x, y });
+      return;
+    }
+
+    if (active.data.current?.type === 'column' && over?.id) {
+      const overId = String(over.id);
+      if (overId.startsWith('comp:')) {
+        const parts = overId.split(':');
+        const computedId = parts[1];
+        const slot = parts[2];
+        qb.setComputedSlot(computedId, slot, {
+          tableId: active.data.current.tableId as string,
+          columnName: active.data.current.columnName as string,
+        });
+      }
       return;
     }
 
@@ -153,12 +175,16 @@ export function QueryBuilderLayout() {
     addOrderBy: qb.addOrderBy,
     updateOrderBy: qb.updateOrderBy,
     removeOrderBy: qb.removeOrderBy,
+    addComputedColumn: qb.addComputedColumn,
+    updateComputedColumn: qb.updateComputedColumn,
+    removeComputedColumn: qb.removeComputedColumn,
     setDistinct: qb.setDistinct,
     setLimit: qb.setLimit,
     reset: qb.reset,
   };
 
   const overlayTable = activeTableName ? schemaMap[activeTableName] : null;
+
 
   async function handleSwitchDataset(id: string) {
     const ds = ALL_DATASETS.find((d) => d.id === id);
@@ -216,6 +242,11 @@ export function QueryBuilderLayout() {
           {activeCanvasLabel && (
             <div className="bg-white border-2 border-indigo-400 rounded-xl shadow-2xl px-4 py-2 text-sm font-bold text-indigo-700 opacity-90 pointer-events-none">
               {activeCanvasLabel}
+            </div>
+          )}
+          {activeColumnLabel && (
+            <div className="bg-indigo-600 border border-indigo-700 rounded-lg shadow-xl px-3 py-1.5 text-xs font-mono text-white opacity-90 pointer-events-none">
+              {activeColumnLabel}
             </div>
           )}
         </DragOverlay>

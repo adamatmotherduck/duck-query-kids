@@ -7,6 +7,9 @@ import type {
   GroupByConfig,
   HavingFilter,
   OrderByConfig,
+  ComputedColumn,
+  ComputedExpr,
+  ColumnRef,
   FilterOperator,
   AggregateFunction,
   ColumnType,
@@ -87,9 +90,51 @@ function isOrderByComplete(o: OrderByConfig): boolean {
   return o.column !== '';
 }
 
+function resolveColumnRef(ref: ColumnRef | null, aliasMap: Map<string, string>): string {
+  if (!ref) return 'NULL';
+  const alias = aliasMap.get(ref.tableId) ?? ref.tableId;
+  return `${alias}.${ref.columnName}`;
+}
+
+function renderComputedExpr(expr: ComputedExpr, aliasMap: Map<string, string>): string {
+  switch (expr.kind) {
+    case 'arithmetic': {
+      const l = resolveColumnRef(expr.left, aliasMap);
+      const r = resolveColumnRef(expr.right, aliasMap);
+      return `(${l} ${expr.op} ${r})`;
+    }
+    case 'fn': {
+      const col = resolveColumnRef(expr.col, aliasMap);
+      return `${expr.fn}(${col})`;
+    }
+    case 'concat': {
+      const l = resolveColumnRef(expr.left, aliasMap);
+      const r = resolveColumnRef(expr.right, aliasMap);
+      const sep = expr.sep ? ` || '${expr.sep.replace(/'/g, "''")}' || ` : ' || ';
+      return `(${l}${sep}${r})`;
+    }
+    case 'date_extract': {
+      const col = resolveColumnRef(expr.col, aliasMap);
+      return `EXTRACT(${expr.part} FROM ${col})`;
+    }
+  }
+}
+
+function isComputedComplete(cc: ComputedColumn): boolean {
+  if (!cc.alias) return false;
+  const e = cc.expr;
+  switch (e.kind) {
+    case 'arithmetic': return e.left !== null && e.right !== null;
+    case 'fn':
+    case 'date_extract': return e.col !== null;
+    case 'concat': return e.left !== null && e.right !== null;
+  }
+}
+
 function buildSelectClause(
   canvasTables: CanvasTable[],
   groupBy: GroupByConfig[],
+  computedColumns: ComputedColumn[],
   distinct: boolean,
   aliasMap: Map<string, string>,
 ): string {
@@ -122,6 +167,10 @@ function buildSelectClause(
         terms.push(`${aliasMap.get(ct.id) ?? ct.id}.*`);
       }
     }
+  }
+
+  for (const cc of computedColumns.filter(isComputedComplete)) {
+    terms.push(`${renderComputedExpr(cc.expr, aliasMap)} AS ${cc.alias}`);
   }
 
   return `${prefix}\n  ${terms.join(',\n  ')}`;
@@ -251,14 +300,14 @@ function buildOrderByClause(
 }
 
 export function generateSQL(state: QueryState, schema: Table[]): string {
-  const { canvasTables, joins, filters, groupBy, having, orderBy, distinct, limit } = state;
+  const { canvasTables, joins, filters, groupBy, having, orderBy, computedColumns, distinct, limit } = state;
   if (canvasTables.length === 0) return '';
 
   const tablesByName = new Map(schema.map((t) => [t.name, t]));
   const aliasMap = buildAliasMap(canvasTables);
 
   const clauses = [
-    buildSelectClause(canvasTables, groupBy, distinct, aliasMap),
+    buildSelectClause(canvasTables, groupBy, computedColumns, distinct, aliasMap),
     buildFromClause(canvasTables, joins, aliasMap),
     buildWhereClause(filters, canvasTables, tablesByName, aliasMap),
     buildGroupByClause(groupBy, aliasMap),
