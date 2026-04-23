@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -30,6 +30,28 @@ export function QueryBuilderLayout() {
   const qb = useQueryBuilder();
   const { customLessons, customProjects } = useCustomContent();
   const [builderOpen, setBuilderOpen] = useState(false);
+  const [bottomHeight, setBottomHeight] = useState(260);
+  const dragStartY = useRef<number | null>(null);
+  const dragStartHeight = useRef<number>(260);
+
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    dragStartY.current = e.clientY;
+    dragStartHeight.current = bottomHeight;
+
+    function onMove(ev: MouseEvent) {
+      if (dragStartY.current === null) return;
+      const delta = dragStartY.current - ev.clientY;
+      setBottomHeight(Math.min(Math.max(dragStartHeight.current + delta, 120), window.innerHeight - 200));
+    }
+    function onUp() {
+      dragStartY.current = null;
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    }
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }, [bottomHeight]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -164,7 +186,16 @@ export function QueryBuilderLayout() {
               foreignKeys={activeDataset.foreignKeys}
               actions={actions}
             />
-            <div className="flex border-t border-gray-200 flex-shrink-0">
+            {/* Resize handle */}
+          <div
+            onMouseDown={handleResizeStart}
+            className="h-1.5 flex-shrink-0 bg-gray-100 hover:bg-indigo-200 active:bg-indigo-300 cursor-row-resize transition-colors flex items-center justify-center group"
+            title="Drag to resize"
+          >
+            <div className="w-8 h-0.5 rounded-full bg-gray-300 group-hover:bg-indigo-400 transition-colors" />
+          </div>
+
+          <div className="flex flex-shrink-0 overflow-hidden" style={{ height: bottomHeight }}>
               <ClausesPanel state={qb.state} schemaMap={schemaMap} actions={actions} />
               <OutputPanel
                 state={qb.state}

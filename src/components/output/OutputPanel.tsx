@@ -20,6 +20,7 @@ interface Props {
 }
 
 export function OutputPanel({ state, activeDataset, lessons, projects }: Props) {
+  // Height is controlled by the parent via the wrapper div; this component fills it.
   const { executeQuery, explainQuery } = useDuckDBContext();
   const [tab, setTab] = useState<Tab>('results');
   const [rows, setRows] = useState<QueryRow[]>([]);
@@ -75,10 +76,8 @@ export function OutputPanel({ state, activeDataset, lessons, projects }: Props) 
         : 'border-transparent text-gray-500 hover:text-gray-700'
     }`;
 
-  const tall = tab === 'lessons' || tab === 'project';
-
   return (
-    <div className={`${tall ? 'h-80' : 'h-64'} flex flex-col bg-white transition-all duration-150`}>
+    <div className="flex-1 flex flex-col bg-white min-w-0">
       <div className="flex border-b border-gray-200 overflow-x-auto flex-shrink-0">
         <button className={TAB_STYLE('results')} onClick={() => setTab('results')}>
           📊 Results {rows.length > 0 && !loading && <span className="ml-1 bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full">{rows.length}</span>}
