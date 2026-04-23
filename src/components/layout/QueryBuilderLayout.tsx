@@ -195,15 +195,15 @@ export function QueryBuilderLayout() {
             <div className="w-8 h-0.5 rounded-full bg-gray-300 group-hover:bg-indigo-400 transition-colors" />
           </div>
 
-          <div className="flex flex-shrink-0 overflow-hidden" style={{ height: bottomHeight }}>
-              <ClausesPanel state={qb.state} schemaMap={schemaMap} actions={actions} />
-              <OutputPanel
-                state={qb.state}
-                activeDataset={activeDataset}
-                lessons={lessons}
-                projects={projects}
-              />
-            </div>
+          <div className="flex flex-col flex-shrink-0 overflow-hidden" style={{ height: bottomHeight }}>
+            <ClausesPanel state={qb.state} schemaMap={schemaMap} actions={actions} />
+            <OutputPanel
+              state={qb.state}
+              activeDataset={activeDataset}
+              lessons={lessons}
+              projects={projects}
+            />
+          </div>
           </div>
         </div>
 

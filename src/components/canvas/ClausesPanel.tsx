@@ -31,14 +31,21 @@ interface Props {
   actions: Actions;
 }
 
+const ADD_BTN = 'flex items-center gap-1 text-xs font-medium px-2 py-1.5 rounded-lg border border-dashed whitespace-nowrap transition-colors disabled:opacity-40 disabled:cursor-not-allowed';
+
 export function ClausesPanel({ state, schemaMap, actions }: Props) {
+  const disabled = state.canvasTables.length === 0;
+
+  const firstTable = state.canvasTables[0];
+  const firstCol = firstTable ? (schemaMap[firstTable.tableName]?.columns[0]?.name ?? '') : '';
+
   return (
-    <div className="w-72 flex-shrink-0 flex flex-col border-r border-gray-200 bg-white overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-100 flex-shrink-0">
-        <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Clauses</span>
-        <div className="flex items-center gap-2 ml-auto">
-          <label className="flex items-center gap-1 text-xs text-gray-600 cursor-pointer">
+    <div className="w-full flex-shrink-0 bg-white border-b border-gray-200 overflow-x-auto">
+      <div className="flex flex-wrap items-start gap-2 px-3 py-2 min-w-0">
+
+        {/* Controls: DISTINCT, LIMIT, Reset */}
+        <div className="flex items-center gap-2 flex-shrink-0 border-r border-gray-200 pr-3 self-center">
+          <label className="flex items-center gap-1 text-xs text-gray-600 cursor-pointer whitespace-nowrap">
             <input
               type="checkbox"
               checked={state.distinct}
@@ -47,7 +54,7 @@ export function ClausesPanel({ state, schemaMap, actions }: Props) {
             />
             DISTINCT
           </label>
-          <label className="flex items-center gap-1 text-xs text-gray-600">
+          <label className="flex items-center gap-1 text-xs text-gray-600 whitespace-nowrap">
             <span className="font-medium">LIMIT</span>
             <input
               type="number"
@@ -69,89 +76,89 @@ export function ClausesPanel({ state, schemaMap, actions }: Props) {
             <RotateCcw size={12} />
           </button>
         </div>
-      </div>
 
-      {/* Scrollable clause rows */}
-      <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-2 min-h-0">
-        {state.filters.map((f) => (
-          <FilterRow
-            key={f.id}
-            filter={f}
-            canvasTables={state.canvasTables}
-            schemas={schemaMap}
-            onUpdate={(patch) => actions.updateFilter(f.id, patch)}
-            onRemove={() => actions.removeFilter(f.id)}
-          />
-        ))}
-        <button
-          disabled={state.canvasTables.length === 0}
-          onClick={actions.addFilter}
-          className="text-xs text-amber-600 hover:text-amber-700 flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed w-fit"
-        >
-          <Plus size={12} /> Add WHERE filter
-        </button>
+        {/* WHERE group */}
+        <div className="flex flex-wrap items-start gap-1.5">
+          {state.filters.map((f) => (
+            <FilterRow
+              key={f.id}
+              filter={f}
+              canvasTables={state.canvasTables}
+              schemas={schemaMap}
+              onUpdate={(patch) => actions.updateFilter(f.id, patch)}
+              onRemove={() => actions.removeFilter(f.id)}
+            />
+          ))}
+          <button
+            disabled={disabled}
+            onClick={actions.addFilter}
+            className={`${ADD_BTN} text-amber-600 border-amber-300 hover:bg-amber-50`}
+          >
+            <Plus size={12} /> WHERE
+          </button>
+        </div>
 
-        {state.groupBy.map((g) => (
-          <GroupByRow
-            key={g.id}
-            config={g}
-            canvasTables={state.canvasTables}
-            schemas={schemaMap}
-            onUpdate={(patch) => actions.updateGroupBy(g.id, patch)}
-            onRemove={() => actions.removeGroupBy(g.id)}
-          />
-        ))}
-        <button
-          disabled={state.canvasTables.length === 0}
-          onClick={actions.addGroupBy}
-          className="text-xs text-violet-600 hover:text-violet-700 flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed w-fit"
-        >
-          <Plus size={12} /> Add GROUP BY / aggregate
-        </button>
-
-        {state.groupBy.length > 0 && (
-          <>
-            {state.having.map((h) => (
-              <HavingRow
-                key={h.id}
-                having={h}
-                canvasTables={state.canvasTables}
-                schemas={schemaMap}
-                onUpdate={(patch) => actions.updateHaving(h.id, patch)}
-                onRemove={() => actions.removeHaving(h.id)}
-              />
-            ))}
+        {/* GROUP BY / HAVING group */}
+        <div className="flex flex-wrap items-start gap-1.5">
+          {state.groupBy.map((g) => (
+            <GroupByRow
+              key={g.id}
+              config={g}
+              canvasTables={state.canvasTables}
+              schemas={schemaMap}
+              onUpdate={(patch) => actions.updateGroupBy(g.id, patch)}
+              onRemove={() => actions.removeGroupBy(g.id)}
+            />
+          ))}
+          {state.groupBy.length > 0 && state.having.map((h) => (
+            <HavingRow
+              key={h.id}
+              having={h}
+              canvasTables={state.canvasTables}
+              schemas={schemaMap}
+              onUpdate={(patch) => actions.updateHaving(h.id, patch)}
+              onRemove={() => actions.removeHaving(h.id)}
+            />
+          ))}
+          <button
+            disabled={disabled}
+            onClick={actions.addGroupBy}
+            className={`${ADD_BTN} text-violet-600 border-violet-300 hover:bg-violet-50`}
+          >
+            <Plus size={12} /> GROUP BY
+          </button>
+          {state.groupBy.length > 0 && (
             <button
               onClick={actions.addHaving}
-              className="text-xs text-rose-600 hover:text-rose-700 flex items-center gap-1 w-fit"
+              className={`${ADD_BTN} text-rose-600 border-rose-300 hover:bg-rose-50`}
             >
-              <Plus size={12} /> Add HAVING condition
+              <Plus size={12} /> HAVING
             </button>
-          </>
-        )}
+          )}
+        </div>
 
-        {state.orderBy.map((o) => (
-          <OrderByRow
-            key={o.id}
-            order={o}
-            canvasTables={state.canvasTables}
-            schemas={schemaMap}
-            groupBy={state.groupBy}
-            onUpdate={(patch) => actions.updateOrderBy(o.id, patch)}
-            onRemove={() => actions.removeOrderBy(o.id)}
-          />
-        ))}
-        <button
-          disabled={state.canvasTables.length === 0}
-          onClick={() => {
-            const first = state.canvasTables[0];
-            const firstCol = first ? (schemaMap[first.tableName]?.columns[0]?.name ?? '') : '';
-            if (first) actions.addOrderBy(first.id, firstCol);
-          }}
-          className="text-xs text-sky-600 hover:text-sky-700 flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed w-fit"
-        >
-          <Plus size={12} /> Add ORDER BY
-        </button>
+        {/* ORDER BY group */}
+        <div className="flex flex-wrap items-start gap-1.5">
+          {state.orderBy.map((o) => (
+            <OrderByRow
+              key={o.id}
+              order={o}
+              canvasTables={state.canvasTables}
+              schemas={schemaMap}
+              groupBy={state.groupBy}
+              onUpdate={(patch) => actions.updateOrderBy(o.id, patch)}
+              onRemove={() => actions.removeOrderBy(o.id)}
+            />
+          ))}
+          <button
+            disabled={disabled}
+            onClick={() => { if (firstTable) actions.addOrderBy(firstTable.id, firstCol); }}
+            className={`${ADD_BTN} text-sky-600 border-sky-300 hover:bg-sky-50`}
+          >
+            <Plus size={12} /> ORDER BY
+          </button>
+        </div>
+
       </div>
     </div>
   );
