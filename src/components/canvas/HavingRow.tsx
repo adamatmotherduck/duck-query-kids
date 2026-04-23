@@ -8,6 +8,8 @@ const AGG_OPTIONS = (Object.keys(AGG_LABELS) as AggregateFunction[]).map((k) => 
   label: AGG_LABELS[k],
 }));
 
+const SEL = 'text-xs border border-gray-200 rounded px-1.5 py-1 bg-white w-full focus:outline-none focus:ring-1 focus:ring-rose-300';
+
 interface Props {
   having: HavingFilter;
   canvasTables: CanvasTable[];
@@ -22,55 +24,41 @@ export function HavingRow({ having, canvasTables, schemas, onUpdate, onRemove }:
   const needsCol = having.aggregate !== 'COUNT_STAR';
 
   return (
-    <div className="flex items-center gap-2 bg-white border border-rose-200 rounded-lg px-3 py-2 flex-wrap">
-      <span className="text-xs text-rose-600 font-semibold w-14 flex-shrink-0">HAVING</span>
-      <select
-        value={having.aggregate}
-        onChange={(e) => onUpdate({ aggregate: e.target.value as AggregateFunction })}
-        className="text-xs border rounded px-1.5 py-1 bg-white max-w-[130px]"
-      >
+    <div className="bg-rose-50 border border-rose-200 rounded-lg p-2 flex flex-col gap-1.5">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] text-rose-600 font-bold uppercase tracking-wide">HAVING</span>
+        <button onClick={onRemove} className="text-gray-300 hover:text-red-400 transition-colors">
+          <X size={12} />
+        </button>
+      </div>
+      <select value={having.aggregate} onChange={(e) => onUpdate({ aggregate: e.target.value as AggregateFunction })} className={SEL}>
         {AGG_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
       {needsCol && (
-        <>
-          <select
-            value={having.tableId}
-            onChange={(e) => onUpdate({ tableId: e.target.value, column: '' })}
-            className="text-xs border rounded px-1.5 py-1 bg-white max-w-[80px]"
-          >
+        <div className="grid grid-cols-2 gap-1">
+          <select value={having.tableId} onChange={(e) => onUpdate({ tableId: e.target.value, column: '' })} className={SEL}>
             {canvasTables.map((t) => (
-              <option key={t.id} value={t.id}>
-                {schemas[t.tableName]?.label ?? t.tableName}
-              </option>
+              <option key={t.id} value={t.id}>{schemas[t.tableName]?.label ?? t.tableName}</option>
             ))}
           </select>
-          <select
-            value={having.column}
-            onChange={(e) => onUpdate({ column: e.target.value })}
-            className="text-xs border rounded px-1.5 py-1 bg-white max-w-[110px]"
-          >
+          <select value={having.column} onChange={(e) => onUpdate({ column: e.target.value })} className={SEL}>
             <option value="">— column —</option>
             {schema?.columns.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
           </select>
-        </>
+        </div>
       )}
-      <select
-        value={having.operator}
-        onChange={(e) => onUpdate({ operator: e.target.value as HavingFilter['operator'] })}
-        className="text-xs border rounded px-1.5 py-1 bg-white w-14"
-      >
-        {HAVING_OPS.map((op) => <option key={op} value={op}>{op}</option>)}
-      </select>
-      <input
-        type="text"
-        value={having.value}
-        onChange={(e) => onUpdate({ value: e.target.value })}
-        placeholder="value"
-        className="text-xs border rounded px-2 py-1 w-24"
-      />
-      <button onClick={onRemove} className="text-gray-400 hover:text-red-500 transition-colors ml-auto">
-        <X size={14} />
-      </button>
+      <div className="grid grid-cols-2 gap-1">
+        <select value={having.operator} onChange={(e) => onUpdate({ operator: e.target.value as HavingFilter['operator'] })} className={SEL}>
+          {HAVING_OPS.map((op) => <option key={op} value={op}>{op}</option>)}
+        </select>
+        <input
+          type="text"
+          value={having.value}
+          onChange={(e) => onUpdate({ value: e.target.value })}
+          placeholder="value"
+          className="text-xs border border-gray-200 rounded px-1.5 py-1 w-full focus:outline-none focus:ring-1 focus:ring-rose-300"
+        />
+      </div>
     </div>
   );
 }
