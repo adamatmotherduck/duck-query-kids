@@ -5,8 +5,10 @@ import { generateSQL } from '../../utils/sqlGenerator';
 import { NORTHWIND_SCHEMA } from '../../data/northwind';
 import { useDuckDBContext } from '../../context/DuckDBContext';
 import { ResultsGrid } from './ResultsGrid';
+import { LessonPanel } from '../lessons/LessonPanel';
+import { ProjectPanel } from '../lessons/ProjectPanel';
 
-type Tab = 'results' | 'sql' | 'plan';
+type Tab = 'results' | 'sql' | 'plan' | 'lessons' | 'project';
 
 interface Props {
   state: QueryState;
@@ -63,23 +65,31 @@ export function OutputPanel({ state }: Props) {
   }, [tab, sql, runPlan]);
 
   const TAB_STYLE = (t: Tab) =>
-    `px-4 py-2 text-sm font-semibold border-b-2 transition-colors ${
+    `px-3 py-2 text-xs font-semibold border-b-2 transition-colors whitespace-nowrap ${
       tab === t
         ? 'border-indigo-500 text-indigo-600'
         : 'border-transparent text-gray-500 hover:text-gray-700'
     }`;
 
+  const tall = tab === 'lessons' || tab === 'project';
+
   return (
-    <div className="h-64 flex flex-col border-t border-gray-200 bg-white">
-      <div className="flex border-b border-gray-200">
+    <div className={`${tall ? 'h-80' : 'h-64'} flex flex-col border-t border-gray-200 bg-white transition-all duration-150`}>
+      <div className="flex border-b border-gray-200 overflow-x-auto flex-shrink-0">
         <button className={TAB_STYLE('results')} onClick={() => setTab('results')}>
-          📊 Results {rows.length > 0 && !loading && <span className="ml-1 text-xs bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full">{rows.length}</span>}
+          📊 Results {rows.length > 0 && !loading && <span className="ml-1 bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full">{rows.length}</span>}
         </button>
         <button className={TAB_STYLE('sql')} onClick={() => setTab('sql')}>
           📝 SQL
         </button>
         <button className={TAB_STYLE('plan')} onClick={() => setTab('plan')}>
-          🗺️ Query Plan
+          🗺️ Plan
+        </button>
+        <button className={TAB_STYLE('lessons')} onClick={() => setTab('lessons')}>
+          🎓 Lessons
+        </button>
+        <button className={TAB_STYLE('project')} onClick={() => setTab('project')}>
+          🛠 Project
         </button>
       </div>
 
@@ -125,6 +135,8 @@ export function OutputPanel({ state }: Props) {
             )}
           </div>
         )}
+        {tab === 'lessons' && <LessonPanel state={state} />}
+        {tab === 'project' && <ProjectPanel state={state} />}
       </div>
     </div>
   );
