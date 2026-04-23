@@ -1,5 +1,25 @@
 import { useState, useCallback } from 'react';
-import type { CustomLesson, CustomProject } from '../types/builder';
+import type { CustomLesson, CustomProject, Condition, ConditionGroup } from '../types/builder';
+
+function migrateCondition(item: Record<string, unknown>): ConditionGroup {
+  if (item['conditionGroup']) return item['conditionGroup'] as ConditionGroup;
+  // Legacy: single `condition` field
+  if (item['condition']) return { operator: 'all', conditions: [item['condition'] as Condition] };
+  return { operator: 'all', conditions: [] };
+}
+
+function migrateLesson(raw: Record<string, unknown>): CustomLesson {
+  return { ...(raw as unknown as CustomLesson), conditionGroup: migrateCondition(raw) };
+}
+
+function migrateStep(raw: Record<string, unknown>) {
+  return { ...(raw as unknown as CustomLesson), conditionGroup: migrateCondition(raw) };
+}
+
+function migrateProject(raw: Record<string, unknown>): CustomProject {
+  const steps = ((raw['steps'] ?? []) as Record<string, unknown>[]).map(migrateStep);
+  return { ...(raw as unknown as CustomProject), steps } as CustomProject;
+}
 
 const LESSONS_KEY = 'duck-query-kids-custom-lessons';
 const PROJECTS_KEY = 'duck-query-kids-custom-projects';
@@ -31,8 +51,12 @@ function isContentBundle(data: unknown): data is ContentBundle {
 }
 
 export function useCustomContent() {
-  const [customLessons, setCustomLessons] = useState<CustomLesson[]>(() => load<CustomLesson>(LESSONS_KEY));
-  const [customProjects, setCustomProjects] = useState<CustomProject[]>(() => load<CustomProject>(PROJECTS_KEY));
+  const [customLessons, setCustomLessons] = useState<CustomLesson[]>(() =>
+    load<Record<string, unknown>>(LESSONS_KEY).map(migrateLesson),
+  );
+  const [customProjects, setCustomProjects] = useState<CustomProject[]>(() =>
+    load<Record<string, unknown>>(PROJECTS_KEY).map(migrateProject),
+  );
 
   const saveLesson = useCallback((lesson: CustomLesson) => {
     setCustomLessons((prev) => {
@@ -76,14 +100,18 @@ export function useCustomContent() {
   const importBundle = useCallback((bundle: ContentBundle) => {
     setCustomLessons((prev) => {
       const map = new Map(prev.map((l) => [l.id, l]));
-      bundle.lessons.forEach((l) => map.set(l.id, l));
+      bundle.lessons
+        .map((l) => migrateLesson(l as unknown as Record<string, unknown>))
+        .forEach((l) => map.set(l.id, l));
       const next = [...map.values()];
       persist(LESSONS_KEY, next);
       return next;
     });
     setCustomProjects((prev) => {
       const map = new Map(prev.map((p) => [p.id, p]));
-      bundle.projects.forEach((p) => map.set(p.id, p));
+      bundle.projects
+        .map((p) => migrateProject(p as unknown as Record<string, unknown>))
+        .forEach((p) => map.set(p.id, p));
       const next = [...map.values()];
       persist(PROJECTS_KEY, next);
       return next;

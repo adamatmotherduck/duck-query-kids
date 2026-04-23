@@ -1,9 +1,9 @@
 import { useState, useRef } from 'react';
 import { X, Plus, Trash2, ChevronDown, ChevronRight, GripVertical, Pencil, Download, Upload, CheckCircle } from 'lucide-react';
 import type { Dataset } from '../../types/dataset';
-import type { CustomLesson, CustomProject, CustomProjectStep, Condition } from '../../types/builder';
+import type { CustomLesson, CustomProject, CustomProjectStep, ConditionGroup } from '../../types/builder';
 import { useCustomContent, type ContentBundle, isContentBundle } from '../../hooks/useCustomContent';
-import { ConditionBuilder } from './ConditionBuilder';
+import { ConditionGroupBuilder } from './ConditionBuilder';
 import { describeCondition } from '../../utils/conditionCompiler';
 
 type Tab = 'lessons' | 'projects';
@@ -17,13 +17,13 @@ interface Props {
 const FIELD_INPUT = 'border border-gray-200 rounded-md px-3 py-2 text-sm w-full focus:outline-none focus:ring-1 focus:ring-indigo-400';
 const FIELD_TEXTAREA = `${FIELD_INPUT} resize-none`;
 
-const DEFAULT_CONDITION: Condition = { type: 'tableOnCanvas', tableName: '' };
+const DEFAULT_GROUP: ConditionGroup = { operator: 'all', conditions: [{ type: 'tableOnCanvas', tableName: '' }] };
 
 function newStepId() { return `step-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`; }
 function newId()     { return `custom-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`; }
 
 function emptyLesson(datasetId: string): CustomLesson {
-  return { id: newId(), datasetId, title: '', concept: '', description: '', hints: [], condition: DEFAULT_CONDITION };
+  return { id: newId(), datasetId, title: '', concept: '', description: '', hints: [], conditionGroup: DEFAULT_GROUP };
 }
 
 function emptyProject(datasetId: string): CustomProject {
@@ -31,7 +31,7 @@ function emptyProject(datasetId: string): CustomProject {
 }
 
 function emptyStep(): CustomProjectStep {
-  return { id: newStepId(), title: '', description: '', hints: [], condition: DEFAULT_CONDITION };
+  return { id: newStepId(), title: '', description: '', hints: [], conditionGroup: DEFAULT_GROUP };
 }
 
 // ── Hint list ────────────────────────────────────────────────────────────────
@@ -86,9 +86,11 @@ function StepEditor({
         <span className={`text-xs font-semibold flex-1 truncate ${step.title ? 'text-gray-700' : 'text-gray-400 italic'}`}>
           {step.title || 'Untitled step'}
         </span>
-        {step.condition && (
+        {step.conditionGroup?.conditions.length > 0 && (
           <span className="text-[9px] bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded font-medium flex-shrink-0 hidden sm:block truncate max-w-32">
-            {describeCondition(step.condition)}
+            {step.conditionGroup.conditions.length === 1
+              ? describeCondition(step.conditionGroup.conditions[0])
+              : `${step.conditionGroup.conditions.length} conditions`}
           </span>
         )}
         <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="text-gray-300 hover:text-red-400 transition-colors flex-shrink-0 ml-1">
@@ -113,7 +115,7 @@ function StepEditor({
             <label className="block text-xs font-semibold text-gray-600 mb-1">Hints</label>
             <HintList hints={step.hints} onChange={(h) => onChange({ ...step, hints: h })} />
           </div>
-          <ConditionBuilder value={step.condition} onChange={(c) => onChange({ ...step, condition: c })} />
+          <ConditionGroupBuilder value={step.conditionGroup} onChange={(g) => onChange({ ...step, conditionGroup: g })} />
         </div>
       )}
     </div>
@@ -167,7 +169,7 @@ function LessonForm({
         <HintList hints={draft.hints} onChange={(h) => setDraft({ ...draft, hints: h })} />
       </div>
 
-      <ConditionBuilder value={draft.condition} onChange={(c) => setDraft({ ...draft, condition: c })} />
+      <ConditionGroupBuilder value={draft.conditionGroup} onChange={(g) => setDraft({ ...draft, conditionGroup: g })} />
 
       <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
         <button onClick={onCancel} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 font-medium">Cancel</button>

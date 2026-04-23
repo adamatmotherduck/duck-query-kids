@@ -15,7 +15,7 @@ import { ALL_DATASETS } from '../../data/datasets';
 import { useDuckDBContext } from '../../context/DuckDBContext';
 import { useQueryBuilder } from '../../hooks/useQueryBuilder';
 import { useCustomContent } from '../../hooks/useCustomContent';
-import { compileCondition } from '../../utils/conditionCompiler';
+import { compileConditionGroup } from '../../utils/conditionCompiler';
 import { TablePalette } from '../palette/TablePalette';
 import { QueryCanvas } from '../canvas/QueryCanvas';
 import { ClausesPanel } from '../canvas/ClausesPanel';
@@ -49,7 +49,7 @@ export function QueryBuilderLayout() {
         concept: l.concept,
         description: l.description,
         hints: l.hints,
-        check: compileCondition(l.condition),
+        check: compileConditionGroup(l.conditionGroup),
       }));
     return [...activeDataset.lessons, ...custom];
   }, [activeDataset, customLessons]);
@@ -66,7 +66,7 @@ export function QueryBuilderLayout() {
           title: s.title,
           description: s.description,
           hints: s.hints,
-          check: compileCondition(s.condition),
+          check: compileConditionGroup(s.conditionGroup),
         })),
       }));
     return [...activeDataset.projects, ...custom];

@@ -1,5 +1,5 @@
 import type { QueryState } from '../types/query';
-import type { Condition } from '../types/builder';
+import type { Condition, ConditionGroup } from '../types/builder';
 
 export function compileCondition(c: Condition): (state: QueryState) => boolean {
   switch (c.type) {
@@ -71,4 +71,10 @@ export function describeCondition(c: Condition): string {
     case 'orderByDesc':
       return 'An ORDER BY DESC is added';
   }
+}
+
+export function compileConditionGroup(group: ConditionGroup): (state: QueryState) => boolean {
+  const checks = group.conditions.map(compileCondition);
+  if (group.operator === 'all') return (s) => checks.every((fn) => fn(s));
+  return (s) => checks.some((fn) => fn(s));
 }

@@ -10,6 +10,11 @@ export type Condition =
   | { type: 'orderByAdded' }
   | { type: 'orderByDesc' };
 
+export interface ConditionGroup {
+  operator: 'all' | 'any';
+  conditions: Condition[];
+}
+
 export interface CustomLesson {
   id: string;
   datasetId: string;
@@ -17,7 +22,7 @@ export interface CustomLesson {
   concept: string;
   description: string;
   hints: string[];
-  condition: Condition;
+  conditionGroup: ConditionGroup;
 }
 
 export interface CustomProjectStep {
@@ -25,7 +30,7 @@ export interface CustomProjectStep {
   title: string;
   description: string;
   hints: string[];
-  condition: Condition;
+  conditionGroup: ConditionGroup;
 }
 
 export interface CustomProject {
