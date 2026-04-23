@@ -47,7 +47,7 @@ export function PaletteTableCard({ table }: { table: Table }) {
       )}
 
       {/* Column pills — hidden by default, slide in on hover */}
-      <div className="max-h-0 overflow-hidden group-hover:max-h-24 transition-all duration-200 ease-out">
+      <div className="max-h-0 overflow-hidden group-hover:max-h-40 transition-all duration-200 ease-out">
         <div className="flex flex-wrap gap-1 pt-2 pl-[18px]">
           {table.columns.slice(0, 4).map((col) => (
             <span
