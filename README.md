@@ -1,73 +1,45 @@
-# React + TypeScript + Vite
+# DuckQuery Kids 🦆
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A Scratch-style visual SQL query builder that runs entirely in your browser — no server, no setup, no SQL experience required.
 
-Currently, two official plugins are available:
+**[Try it live →](https://adammotherduckai.github.io/duck-query-kids/)**
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+![DuckQuery Kids screenshot](src/assets/hero.png)
 
-## React Compiler
+## What it is
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+DuckQuery Kids lets you build real SQL queries by dragging and dropping — like building with blocks. Under the hood it runs [DuckDB WASM](https://duckdb.org/docs/api/wasm/overview), so queries execute locally in milliseconds against the classic [Northwind](https://github.com/graphql-compose/graphql-compose-examples/tree/master/examples/northwind/data/csv) dataset.
 
-## Expanding the ESLint configuration
+## Features
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- **Drag-and-drop canvas** — drop tables from the sidebar onto the canvas, move them around
+- **Visual column selection** — check the columns you want in your SELECT
+- **JOIN builder** — auto-detect FK relationships or configure conditions manually; supports INNER, LEFT, RIGHT, FULL OUTER
+- **Clause strips** — WHERE filters, GROUP BY + aggregates, HAVING, ORDER BY, DISTINCT, LIMIT — all configured without writing SQL
+- **Live SQL preview** — see the SQL your blocks generate in real time, with a one-click Copy button
+- **Query plan** — inspect the DuckDB execution plan for any query
+- **Lessons** — six guided exercises teach FROM → SELECT → WHERE → JOIN → GROUP BY → ORDER BY, with progressive hints and localStorage-persisted progress
+- **Column type badges** — colored `text` / `num` / `date` / `bool` pills on every column
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Dataset
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+Northwind is a sample trading-company database: customers, orders, order lines, products, categories, and employees — all pre-loaded, no download required.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Running locally
+
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Requires Node 18+. The app needs `Cross-Origin-Opener-Policy: same-origin` headers for SharedArrayBuffer (used by DuckDB WASM) — the dev server sets these automatically.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Tech stack
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+| | |
+|---|---|
+| Query engine | [DuckDB WASM](https://duckdb.org/docs/api/wasm/overview) |
+| UI | [React](https://react.dev) + [TypeScript](https://www.typescriptlang.org) |
+| Drag and drop | [@dnd-kit](https://dndkit.com) |
+| Styling | [Tailwind CSS](https://tailwindcss.com) |
+| Build | [Vite](https://vitejs.dev) |
