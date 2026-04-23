@@ -74,7 +74,7 @@ export function OutputPanel({ state }: Props) {
   const tall = tab === 'lessons' || tab === 'project';
 
   return (
-    <div className={`${tall ? 'h-80' : 'h-64'} flex flex-col border-t border-gray-200 bg-white transition-all duration-150`}>
+    <div className={`${tall ? 'h-80' : 'h-64'} flex flex-col bg-white transition-all duration-150`}>
       <div className="flex border-b border-gray-200 overflow-x-auto flex-shrink-0">
         <button className={TAB_STYLE('results')} onClick={() => setTab('results')}>
           📊 Results {rows.length > 0 && !loading && <span className="ml-1 bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full">{rows.length}</span>}

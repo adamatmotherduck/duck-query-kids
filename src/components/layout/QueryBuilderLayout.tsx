@@ -13,6 +13,7 @@ import { NORTHWIND_SCHEMA } from '../../data/northwind';
 import { useQueryBuilder } from '../../hooks/useQueryBuilder';
 import { TablePalette } from '../palette/TablePalette';
 import { QueryCanvas } from '../canvas/QueryCanvas';
+import { ClausesPanel } from '../canvas/ClausesPanel';
 import { OutputPanel } from '../output/OutputPanel';
 import { PaletteTableCard } from '../palette/PaletteTableCard';
 
@@ -103,7 +104,10 @@ export function QueryBuilderLayout() {
         <TablePalette />
         <div className="flex-1 flex flex-col overflow-hidden">
           <QueryCanvas state={qb.state} schemaMap={SCHEMA_MAP} actions={actions} />
-          <OutputPanel state={qb.state} />
+          <div className="flex border-t border-gray-200 flex-shrink-0">
+            <ClausesPanel state={qb.state} schemaMap={SCHEMA_MAP} actions={actions} />
+            <OutputPanel state={qb.state} />
+          </div>
         </div>
       </div>
 
