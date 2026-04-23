@@ -118,7 +118,7 @@ export const NORTHWIND_CSV_FILES: Array<{ tableName: string; filename: string; u
   NORTHWIND_SCHEMA.map(({ name }) => ({
     tableName: name,
     filename: `northwind_${name}.csv`,
-    url: `/data/northwind/${name}.csv`,
+    url: `${import.meta.env.BASE_URL}data/northwind/${name}.csv`,
   }));
 
 export function suggestJoinColumns(
