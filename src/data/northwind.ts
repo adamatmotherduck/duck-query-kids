@@ -1,4 +1,7 @@
 import type { Table, ForeignKeyRelationship } from '../types/query';
+import type { Dataset } from '../types/dataset';
+import { LESSONS } from './lessons';
+import { PROJECTS } from './projects';
 
 export const NORTHWIND_SCHEMA: Table[] = [
   {
@@ -145,6 +148,18 @@ export const TABLE_COLORS: Record<string, string> = {
   products: 'purple',
   categories: 'pink',
   employees: 'teal',
+};
+
+export const NORTHWIND_DATASET: Dataset = {
+  id: 'northwind',
+  name: 'Northwind Traders',
+  emoji: '🛒',
+  description: 'A classic retail dataset with customers, orders, products, and employees.',
+  schema: NORTHWIND_SCHEMA,
+  foreignKeys: NORTHWIND_FOREIGN_KEYS,
+  csvFiles: NORTHWIND_CSV_FILES,
+  lessons: LESSONS,
+  projects: PROJECTS,
 };
 
 export const AGG_LABELS: Record<string, string> = {

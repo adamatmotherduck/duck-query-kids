@@ -1,7 +1,7 @@
 import { useDroppable } from '@dnd-kit/core';
 import { Zap } from 'lucide-react';
-import type { QueryState, Table, Join } from '../../types/query';
-import { suggestJoinColumns } from '../../data/northwind';
+import type { QueryState, Table, Join, ForeignKeyRelationship } from '../../types/query';
+import { suggestJoin } from '../../data/datasets';
 import { CanvasTableBlock } from './CanvasTable';
 import { JoinConnector } from './JoinConnector';
 
@@ -17,10 +17,11 @@ interface Actions {
 interface Props {
   state: QueryState;
   schemaMap: Record<string, Table>;
+  foreignKeys: ForeignKeyRelationship[];
   actions: Actions;
 }
 
-export function QueryCanvas({ state, schemaMap, actions }: Props) {
+export function QueryCanvas({ state, schemaMap, foreignKeys, actions }: Props) {
   const { setNodeRef, isOver } = useDroppable({ id: 'canvas' });
 
   const canvasIsEmpty = state.canvasTables.length === 0;
@@ -29,9 +30,8 @@ export function QueryCanvas({ state, schemaMap, actions }: Props) {
     const leftTable = state.canvasTables.find((t) => t.id === leftId);
     const rightTable = state.canvasTables.find((t) => t.id === rightId);
     if (!leftTable || !rightTable) return;
-    const fk = suggestJoinColumns(leftTable.tableName, rightTable.tableName);
+    const fk = suggestJoin(foreignKeys, leftTable.tableName, rightTable.tableName);
     if (!fk) {
-      // No FK found — use first column of each as placeholder
       const leftCol = schemaMap[leftTable.tableName]?.columns[0]?.name ?? '';
       const rightCol = schemaMap[rightTable.tableName]?.columns[0]?.name ?? '';
       actions.addJoin(leftId, leftCol, rightId, rightCol);
@@ -47,7 +47,6 @@ export function QueryCanvas({ state, schemaMap, actions }: Props) {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      {/* Canvas drop zone */}
       <div
         ref={setNodeRef}
         className={`flex-1 relative overflow-auto transition-colors ${
@@ -63,7 +62,6 @@ export function QueryCanvas({ state, schemaMap, actions }: Props) {
           </div>
         )}
 
-        {/* Join connector SVG lines */}
         {state.joins.map((join) => {
           const leftCT = state.canvasTables.find((t) => t.id === join.leftTableId);
           const rightCT = state.canvasTables.find((t) => t.id === join.rightTableId);
@@ -84,7 +82,6 @@ export function QueryCanvas({ state, schemaMap, actions }: Props) {
           );
         })}
 
-        {/* Canvas table blocks */}
         {state.canvasTables.map((ct) => {
           const schema = schemaMap[ct.tableName];
           if (!schema) return null;
@@ -100,7 +97,6 @@ export function QueryCanvas({ state, schemaMap, actions }: Props) {
           );
         })}
 
-        {/* Join suggestion buttons (shown between each pair of tables without a join) */}
         {state.canvasTables.length >= 2 && (() => {
           const existing = new Set(state.joins.flatMap((j) => [`${j.leftTableId}|${j.rightTableId}`, `${j.rightTableId}|${j.leftTableId}`]));
           const buttons: React.ReactNode[] = [];
@@ -109,7 +105,7 @@ export function QueryCanvas({ state, schemaMap, actions }: Props) {
               const l = state.canvasTables[i];
               const r = state.canvasTables[k];
               if (existing.has(`${l.id}|${r.id}`)) continue;
-              const fk = suggestJoinColumns(l.tableName, r.tableName);
+              const fk = suggestJoin(foreignKeys, l.tableName, r.tableName);
               const lx = (l.position.x + r.position.x) / 2 + 100;
               const ly = (l.position.y + r.position.y) / 2 + 20;
               buttons.push(
@@ -129,7 +125,6 @@ export function QueryCanvas({ state, schemaMap, actions }: Props) {
           return buttons;
         })()}
       </div>
-
     </div>
   );
 }

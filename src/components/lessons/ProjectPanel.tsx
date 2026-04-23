@@ -1,36 +1,67 @@
 import { useState, useEffect } from 'react';
 import { CheckCircle, Circle, Lightbulb, ChevronRight } from 'lucide-react';
 import type { QueryState } from '../../types/query';
-import { PROJECTS } from '../../data/projects';
+import type { Project } from '../../types/project';
 
 interface Props {
   state: QueryState;
+  projects: Project[];
 }
 
-export function ProjectPanel({ state }: Props) {
-  const project = PROJECTS[0];
+export function ProjectPanel({ state, projects }: Props) {
+  const [activeProjectIdx, setActiveProjectIdx] = useState(0);
   const [hintIndex, setHintIndex] = useState(0);
-  const [prevActiveIdx, setPrevActiveIdx] = useState(-1);
+  const [prevActiveStepIdx, setPrevActiveStepIdx] = useState(-1);
+
+  // Reset when projects change (dataset switch)
+  useEffect(() => {
+    setActiveProjectIdx(0);
+    setHintIndex(0);
+    setPrevActiveStepIdx(-1);
+  }, [projects]);
+
+  const project = projects[activeProjectIdx];
+
+  if (!project) {
+    return <div className="flex items-center justify-center h-full text-gray-400 text-sm">No projects available.</div>;
+  }
 
   const stepDone = project.steps.map((s) => s.check(state));
   const allDone = stepDone.every(Boolean);
   const activeIdx = stepDone.findIndex((done) => !done);
   const activeStep = activeIdx >= 0 ? project.steps[activeIdx] : null;
+  const completedCount = stepDone.filter(Boolean).length;
 
   // Reset hints when the active step advances
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
-    if (activeIdx !== prevActiveIdx) {
+    if (activeIdx !== prevActiveStepIdx) {
       setHintIndex(0);
-      setPrevActiveIdx(activeIdx);
+      setPrevActiveStepIdx(activeIdx);
     }
-  }, [activeIdx, prevActiveIdx]);
-
-  const completedCount = stepDone.filter(Boolean).length;
+  }, [activeIdx, prevActiveStepIdx]);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Project header */}
+      {/* Project header with selector if multiple projects */}
       <div className="px-3 pt-3 pb-2 border-b border-gray-100 bg-white flex-shrink-0">
+        {projects.length > 1 && (
+          <div className="flex gap-1 mb-2 flex-wrap">
+            {projects.map((p, i) => (
+              <button
+                key={p.id}
+                onClick={() => setActiveProjectIdx(i)}
+                className={`text-[10px] px-2 py-0.5 rounded-full border font-medium transition-colors ${
+                  i === activeProjectIdx
+                    ? 'bg-violet-100 border-violet-300 text-violet-700'
+                    : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
+                }`}
+              >
+                {p.title}
+              </button>
+            ))}
+          </div>
+        )}
         <h3 className="text-xs font-bold text-gray-700 leading-snug mb-1">{project.title}</h3>
         <p className="text-[10px] text-gray-500 leading-relaxed">{project.description}</p>
         <div className="mt-2 h-1.5 bg-gray-200 rounded-full overflow-hidden">
@@ -69,11 +100,7 @@ export function ProjectPanel({ state }: Props) {
                 ) : (
                   <Circle size={13} className="text-gray-300 flex-shrink-0" />
                 )}
-                <span
-                  className={`font-semibold ${
-                    done ? 'text-green-700' : active ? 'text-violet-700' : 'text-gray-400'
-                  }`}
-                >
+                <span className={`font-semibold ${done ? 'text-green-700' : active ? 'text-violet-700' : 'text-gray-400'}`}>
                   {i + 1}. {step.title}
                 </span>
               </div>
@@ -92,7 +119,7 @@ export function ProjectPanel({ state }: Props) {
             <div className="text-2xl mb-1">🏆</div>
             <div className="text-sm font-bold text-violet-700">Project complete!</div>
             <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-              Check the Results tab — you can see each customer's order count per category. The top row for each customer is their favorite.
+              Check the Results tab to see your query output.
             </p>
           </div>
         ) : activeStep ? (
@@ -108,10 +135,7 @@ export function ProjectPanel({ state }: Props) {
             {hintIndex > 0 && (
               <div className="flex flex-col gap-1 mt-2">
                 {activeStep.hints.slice(0, hintIndex).map((hint, i) => (
-                  <div
-                    key={i}
-                    className="text-xs bg-amber-50 border border-amber-100 rounded px-2 py-1.5 text-amber-700 leading-relaxed"
-                  >
+                  <div key={i} className="text-xs bg-amber-50 border border-amber-100 rounded px-2 py-1.5 text-amber-700 leading-relaxed">
                     💡 {hint}
                   </div>
                 ))}

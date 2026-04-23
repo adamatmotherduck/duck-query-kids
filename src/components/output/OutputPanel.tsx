@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Copy, Check } from 'lucide-react';
-import type { QueryState, QueryRow, Table } from '../../types/query';
+import type { QueryState, QueryRow } from '../../types/query';
+import type { Dataset } from '../../types/dataset';
 import { generateSQL } from '../../utils/sqlGenerator';
-import { NORTHWIND_SCHEMA } from '../../data/northwind';
 import { useDuckDBContext } from '../../context/DuckDBContext';
 import { ResultsGrid } from './ResultsGrid';
 import { LessonPanel } from '../lessons/LessonPanel';
@@ -12,10 +12,10 @@ type Tab = 'results' | 'sql' | 'plan' | 'lessons' | 'project';
 
 interface Props {
   state: QueryState;
-  schemaMap?: Record<string, Table>;
+  activeDataset: Dataset;
 }
 
-export function OutputPanel({ state }: Props) {
+export function OutputPanel({ state, activeDataset }: Props) {
   const { executeQuery, explainQuery } = useDuckDBContext();
   const [tab, setTab] = useState<Tab>('results');
   const [rows, setRows] = useState<QueryRow[]>([]);
@@ -26,7 +26,7 @@ export function OutputPanel({ state }: Props) {
   const [copied, setCopied] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const sql = generateSQL(state, NORTHWIND_SCHEMA);
+  const sql = generateSQL(state, activeDataset.schema);
 
   const runQuery = useCallback(async (q: string) => {
     if (!q) { setRows([]); setQueryError(null); return; }
@@ -135,8 +135,19 @@ export function OutputPanel({ state }: Props) {
             )}
           </div>
         )}
-        {tab === 'lessons' && <LessonPanel state={state} />}
-        {tab === 'project' && <ProjectPanel state={state} />}
+        {tab === 'lessons' && (
+          <LessonPanel
+            state={state}
+            lessons={activeDataset.lessons}
+            storageKey={`duck-query-kids-completed-${activeDataset.id}`}
+          />
+        )}
+        {tab === 'project' && (
+          <ProjectPanel
+            state={state}
+            projects={activeDataset.projects}
+          />
+        )}
       </div>
     </div>
   );

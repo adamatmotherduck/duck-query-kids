@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import * as duckdb from '@duckdb/duckdb-wasm';
 import type { QueryRow } from '../types/query';
-import { NORTHWIND_CSV_FILES } from '../data/northwind';
+import type { Dataset } from '../types/dataset';
+import { NORTHWIND_DATASET } from '../data/northwind';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function arrowToRows(table: any): QueryRow[] {
@@ -18,11 +19,21 @@ function arrowToRows(table: any): QueryRow[] {
   return rows;
 }
 
-async function loadNorthwind(
+async function loadDataset(
   db: duckdb.AsyncDuckDB,
   conn: duckdb.AsyncDuckDBConnection,
+  dataset: Dataset,
 ): Promise<void> {
-  for (const { tableName, filename, url } of NORTHWIND_CSV_FILES) {
+  // Drop all existing tables first so switching datasets is clean
+  const existing = await conn.query(
+    `SELECT table_name FROM information_schema.tables WHERE table_schema = 'main'`,
+  );
+  const names = arrowToRows(existing).map((r) => String(r['table_name']));
+  for (const name of names) {
+    await conn.query(`DROP TABLE IF EXISTS "${name}"`);
+  }
+
+  for (const { tableName, filename, url } of dataset.csvFiles) {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`Failed to fetch ${url}: ${res.status}`);
     const buffer = await res.arrayBuffer();
@@ -35,14 +46,20 @@ async function loadNorthwind(
 
 export interface UseDuckDBReturn {
   isLoading: boolean;
+  isLoadingDataset: boolean;
   error: Error | null;
+  activeDataset: Dataset;
+  switchDataset: (dataset: Dataset) => Promise<void>;
   executeQuery: (sql: string) => Promise<QueryRow[]>;
   explainQuery: (sql: string) => Promise<string>;
 }
 
 export function useDuckDB(): UseDuckDBReturn {
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingDataset, setIsLoadingDataset] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const [activeDataset, setActiveDataset] = useState<Dataset>(NORTHWIND_DATASET);
+  const dbRef = useRef<duckdb.AsyncDuckDB | null>(null);
   const connRef = useRef<duckdb.AsyncDuckDBConnection | null>(null);
 
   useEffect(() => {
@@ -51,8 +68,6 @@ export function useDuckDB(): UseDuckDBReturn {
 
     async function init() {
       try {
-        // Use jsDelivr bundles. The blob URL trick makes the cross-origin worker
-        // loadable without COOP/COEP headers.
         const bundle = await duckdb.selectBundle(duckdb.getJsDelivrBundles());
         if (!bundle.mainWorker) throw new Error('No DuckDB WASM worker available.');
         const workerUrl = URL.createObjectURL(
@@ -64,8 +79,9 @@ export function useDuckDB(): UseDuckDBReturn {
         const db = new duckdb.AsyncDuckDB(logger, worker);
         await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
         conn = await db.connect();
-        await loadNorthwind(db, conn);
+        await loadDataset(db, conn, NORTHWIND_DATASET);
         if (cancelled) { conn.close(); return; }
+        dbRef.current = db;
         connRef.current = conn;
         setIsLoading(false);
       } catch (err) {
@@ -81,6 +97,20 @@ export function useDuckDB(): UseDuckDBReturn {
       cancelled = true;
       conn?.close().catch(() => {});
     };
+  }, []);
+
+  const switchDataset = useCallback(async (dataset: Dataset) => {
+    if (!dbRef.current || !connRef.current) return;
+    setIsLoadingDataset(true);
+    setError(null);
+    try {
+      await loadDataset(dbRef.current, connRef.current, dataset);
+      setActiveDataset(dataset);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error(String(err)));
+    } finally {
+      setIsLoadingDataset(false);
+    }
   }, []);
 
   const executeQuery = useCallback(async (sql: string): Promise<QueryRow[]> => {
@@ -101,5 +131,5 @@ export function useDuckDB(): UseDuckDBReturn {
     }
   }, []);
 
-  return { isLoading, error, executeQuery, explainQuery };
+  return { isLoading, isLoadingDataset, error, activeDataset, switchDataset, executeQuery, explainQuery };
 }

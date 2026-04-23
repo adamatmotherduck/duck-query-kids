@@ -9,7 +9,8 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core';
 import type { Table } from '../../types/query';
-import { NORTHWIND_SCHEMA } from '../../data/northwind';
+import { ALL_DATASETS } from '../../data/datasets';
+import { useDuckDBContext } from '../../context/DuckDBContext';
 import { useQueryBuilder } from '../../hooks/useQueryBuilder';
 import { TablePalette } from '../palette/TablePalette';
 import { QueryCanvas } from '../canvas/QueryCanvas';
@@ -17,19 +18,19 @@ import { ClausesPanel } from '../canvas/ClausesPanel';
 import { OutputPanel } from '../output/OutputPanel';
 import { PaletteTableCard } from '../palette/PaletteTableCard';
 
-const SCHEMA_MAP: Record<string, Table> = Object.fromEntries(
-  NORTHWIND_SCHEMA.map((t) => [t.name, t]),
-);
-
 const DROP_OFFSET = 60;
 
 export function QueryBuilderLayout() {
+  const { activeDataset, switchDataset, isLoadingDataset } = useDuckDBContext();
   const qb = useQueryBuilder();
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
 
-  // Track the active drag item so DragOverlay can render a ghost
+  const schemaMap: Record<string, Table> = Object.fromEntries(
+    activeDataset.schema.map((t) => [t.name, t]),
+  );
+
   const [activeTableName, setActiveTableName] = useState<string | null>(null);
   const [activeCanvasLabel, setActiveCanvasLabel] = useState<string | null>(null);
 
@@ -40,7 +41,7 @@ export function QueryBuilderLayout() {
       setActiveCanvasLabel(null);
     } else if (data?.type === 'canvas-table') {
       const ct = qb.state.canvasTables.find((t) => t.id === data.tableId);
-      setActiveCanvasLabel(ct ? (SCHEMA_MAP[ct.tableName]?.label ?? ct.tableName) : null);
+      setActiveCanvasLabel(ct ? (schemaMap[ct.tableName]?.label ?? ct.tableName) : null);
       setActiveTableName(null);
     }
   }
@@ -51,7 +52,6 @@ export function QueryBuilderLayout() {
 
     const { over, active, delta } = event;
 
-    // Dropping palette card onto canvas
     if (over?.id === 'canvas' && active.data.current?.tableName) {
       const tableName = active.data.current.tableName as string;
       const rect = over?.rect ?? { left: 0, top: 0 };
@@ -61,7 +61,6 @@ export function QueryBuilderLayout() {
       return;
     }
 
-    // Moving a canvas table block
     if (active.data.current?.type === 'canvas-table') {
       const tableId = active.data.current.tableId as string;
       const ct = qb.state.canvasTables.find((t) => t.id === tableId);
@@ -96,22 +95,39 @@ export function QueryBuilderLayout() {
     reset: qb.reset,
   };
 
-  const overlayTable = activeTableName ? SCHEMA_MAP[activeTableName] : null;
+  const overlayTable = activeTableName ? schemaMap[activeTableName] : null;
+
+  async function handleSwitchDataset(id: string) {
+    const ds = ALL_DATASETS.find((d) => d.id === id);
+    if (!ds || ds.id === activeDataset.id) return;
+    qb.reset();
+    await switchDataset(ds);
+  }
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="flex h-screen overflow-hidden bg-white">
-        <TablePalette />
+        <TablePalette
+          schema={activeDataset.schema}
+          datasets={ALL_DATASETS}
+          activeDatasetId={activeDataset.id}
+          isLoadingDataset={isLoadingDataset}
+          onSwitchDataset={handleSwitchDataset}
+        />
         <div className="flex-1 flex flex-col overflow-hidden">
-          <QueryCanvas state={qb.state} schemaMap={SCHEMA_MAP} actions={actions} />
+          <QueryCanvas
+            state={qb.state}
+            schemaMap={schemaMap}
+            foreignKeys={activeDataset.foreignKeys}
+            actions={actions}
+          />
           <div className="flex border-t border-gray-200 flex-shrink-0">
-            <ClausesPanel state={qb.state} schemaMap={SCHEMA_MAP} actions={actions} />
-            <OutputPanel state={qb.state} />
+            <ClausesPanel state={qb.state} schemaMap={schemaMap} actions={actions} />
+            <OutputPanel state={qb.state} activeDataset={activeDataset} />
           </div>
         </div>
       </div>
 
-      {/* DragOverlay renders in a portal above all stacking contexts */}
       <DragOverlay dropAnimation={null}>
         {overlayTable && (
           <div className="opacity-90 pointer-events-none">
