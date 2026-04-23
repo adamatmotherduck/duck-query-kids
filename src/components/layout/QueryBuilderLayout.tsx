@@ -24,15 +24,16 @@ import { PaletteTableCard } from '../palette/PaletteTableCard';
 import { BuilderModal } from '../builder/BuilderModal';
 
 const DROP_OFFSET = 60;
+const INITIAL_BOTTOM_HEIGHT = 260;
 
 export function QueryBuilderLayout() {
   const { activeDataset, switchDataset, isLoadingDataset } = useDuckDBContext();
   const qb = useQueryBuilder();
   const { customLessons, customProjects } = useCustomContent();
   const [builderOpen, setBuilderOpen] = useState(false);
-  const [bottomHeight, setBottomHeight] = useState(260);
+  const [bottomHeight, setBottomHeight] = useState(INITIAL_BOTTOM_HEIGHT);
   const dragStartY = useRef<number | null>(null);
-  const dragStartHeight = useRef<number>(260);
+  const dragStartHeight = useRef<number>(INITIAL_BOTTOM_HEIGHT);
 
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();

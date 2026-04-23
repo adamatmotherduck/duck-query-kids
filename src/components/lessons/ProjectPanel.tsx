@@ -21,25 +21,24 @@ export function ProjectPanel({ state, projects }: Props) {
   }, [projects]);
 
   const project = projects[activeProjectIdx];
-
-  if (!project) {
-    return <div className="flex items-center justify-center h-full text-gray-400 text-sm">No projects available.</div>;
-  }
-
-  const stepDone = project.steps.map((s) => s.check(state));
-  const allDone = stepDone.every(Boolean);
+  const stepDone = project ? project.steps.map((s) => s.check(state)) : [];
   const activeIdx = stepDone.findIndex((done) => !done);
-  const activeStep = activeIdx >= 0 ? project.steps[activeIdx] : null;
-  const completedCount = stepDone.filter(Boolean).length;
 
   // Reset hints when the active step advances
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     if (activeIdx !== prevActiveStepIdx) {
       setHintIndex(0);
       setPrevActiveStepIdx(activeIdx);
     }
   }, [activeIdx, prevActiveStepIdx]);
+
+  if (!project) {
+    return <div className="flex items-center justify-center h-full text-gray-400 text-sm">No projects available.</div>;
+  }
+
+  const allDone = stepDone.every(Boolean);
+  const activeStep = activeIdx >= 0 ? project.steps[activeIdx] : null;
+  const completedCount = stepDone.filter(Boolean).length;
 
   return (
     <div className="flex flex-col h-full overflow-hidden">

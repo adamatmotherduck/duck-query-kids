@@ -2,6 +2,7 @@ import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { X, GripVertical } from 'lucide-react';
 import type { CanvasTable as CanvasTableType, ColumnType, Table, Column } from '../../types/query';
+import { getCanvasColors } from '../../data/tableColors';
 
 const TYPE_BADGE: Record<ColumnType, { label: string; cls: string }> = {
   string:  { label: 'text', cls: 'bg-blue-100 text-blue-600' },
@@ -10,30 +11,7 @@ const TYPE_BADGE: Record<ColumnType, { label: string; cls: string }> = {
   boolean: { label: 'bool', cls: 'bg-purple-100 text-purple-600' },
 };
 
-const COLOR_CLASSES: Record<string, { header: string; border: string; check: string }> = {
-  // Northwind
-  customers:    { header: 'bg-blue-500',    border: 'border-blue-400',    check: 'accent-blue-500'    },
-  orders:       { header: 'bg-green-500',   border: 'border-green-400',   check: 'accent-green-500'   },
-  order_details:{ header: 'bg-orange-500',  border: 'border-orange-400',  check: 'accent-orange-500'  },
-  products:     { header: 'bg-purple-500',  border: 'border-purple-400',  check: 'accent-purple-500'  },
-  categories:   { header: 'bg-pink-500',    border: 'border-pink-400',    check: 'accent-pink-500'    },
-  employees:    { header: 'bg-teal-500',    border: 'border-teal-400',    check: 'accent-teal-500'    },
-  // Chinook
-  artist:       { header: 'bg-sky-500',     border: 'border-sky-400',     check: 'accent-sky-500'     },
-  album:        { header: 'bg-violet-500',  border: 'border-violet-400',  check: 'accent-violet-500'  },
-  track:        { header: 'bg-emerald-500', border: 'border-emerald-400', check: 'accent-emerald-500' },
-  genre:        { header: 'bg-orange-500',  border: 'border-orange-400',  check: 'accent-orange-500'  },
-  customer:     { header: 'bg-blue-500',    border: 'border-blue-400',    check: 'accent-blue-500'    },
-  invoice:      { header: 'bg-green-500',   border: 'border-green-400',   check: 'accent-green-500'   },
-  invoice_line: { header: 'bg-amber-500',   border: 'border-amber-400',   check: 'accent-amber-500'   },
-  employee:     { header: 'bg-teal-500',    border: 'border-teal-400',    check: 'accent-teal-500'    },
-  // IMDB
-  movies:       { header: 'bg-rose-500',    border: 'border-rose-400',    check: 'accent-rose-500'    },
-  genres:       { header: 'bg-yellow-500',  border: 'border-yellow-400',  check: 'accent-yellow-500'  },
-  movie_genres: { header: 'bg-lime-600',    border: 'border-lime-500',    check: 'accent-lime-600'    },
-  people:       { header: 'bg-cyan-500',    border: 'border-cyan-400',    check: 'accent-cyan-500'    },
-  directors:    { header: 'bg-fuchsia-500', border: 'border-fuchsia-400', check: 'accent-fuchsia-500' },
-};
+const CANVAS_TABLE_WIDTH = 200;
 
 function DraggableColumnRow({
   col, canvasTableId, checked, colors, onToggle, onAddOrderBy,
@@ -98,9 +76,7 @@ export function CanvasTableBlock({ canvasTable, schema, onRemove, onToggleColumn
     data: { type: 'canvas-table', tableId: canvasTable.id },
   });
 
-  const colors = COLOR_CLASSES[canvasTable.tableName] ?? {
-    header: 'bg-gray-500', border: 'border-gray-400', check: 'accent-gray-500',
-  };
+  const colors = getCanvasColors(canvasTable.tableName);
 
   // When dragging, hide the source — DragOverlay is the ghost above all stacking contexts.
   const style: React.CSSProperties = {
@@ -109,7 +85,7 @@ export function CanvasTableBlock({ canvasTable, schema, onRemove, onToggleColumn
     top: canvasTable.position.y,
     transform: CSS.Translate.toString(transform),
     opacity: transform ? 0 : 1,
-    width: 200,
+    width: CANVAS_TABLE_WIDTH,
   };
 
   return (

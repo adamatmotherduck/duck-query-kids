@@ -1,31 +1,7 @@
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import type { Table } from '../../types/query';
-
-const COLOR_CLASSES: Record<string, { bg: string; border: string; text: string; dot: string }> = {
-  // Northwind
-  customers:    { bg: 'bg-blue-50',    border: 'border-blue-300',    text: 'text-blue-800',    dot: 'bg-blue-400'    },
-  orders:       { bg: 'bg-green-50',   border: 'border-green-300',   text: 'text-green-800',   dot: 'bg-green-400'   },
-  order_details:{ bg: 'bg-orange-50',  border: 'border-orange-300',  text: 'text-orange-800',  dot: 'bg-orange-400'  },
-  products:     { bg: 'bg-purple-50',  border: 'border-purple-300',  text: 'text-purple-800',  dot: 'bg-purple-400'  },
-  categories:   { bg: 'bg-pink-50',    border: 'border-pink-300',    text: 'text-pink-800',    dot: 'bg-pink-400'    },
-  employees:    { bg: 'bg-teal-50',    border: 'border-teal-300',    text: 'text-teal-800',    dot: 'bg-teal-400'    },
-  // Chinook
-  artist:       { bg: 'bg-sky-50',     border: 'border-sky-300',     text: 'text-sky-800',     dot: 'bg-sky-400'     },
-  album:        { bg: 'bg-violet-50',  border: 'border-violet-300',  text: 'text-violet-800',  dot: 'bg-violet-400'  },
-  track:        { bg: 'bg-emerald-50', border: 'border-emerald-300', text: 'text-emerald-800', dot: 'bg-emerald-400' },
-  genre:        { bg: 'bg-orange-50',  border: 'border-orange-300',  text: 'text-orange-800',  dot: 'bg-orange-400'  },
-  customer:     { bg: 'bg-blue-50',    border: 'border-blue-300',    text: 'text-blue-800',    dot: 'bg-blue-400'    },
-  invoice:      { bg: 'bg-green-50',   border: 'border-green-300',   text: 'text-green-800',   dot: 'bg-green-400'   },
-  invoice_line: { bg: 'bg-amber-50',   border: 'border-amber-300',   text: 'text-amber-800',   dot: 'bg-amber-400'   },
-  employee:     { bg: 'bg-teal-50',    border: 'border-teal-300',    text: 'text-teal-800',    dot: 'bg-teal-400'    },
-  // IMDB
-  movies:       { bg: 'bg-rose-50',    border: 'border-rose-300',    text: 'text-rose-800',    dot: 'bg-rose-400'    },
-  genres:       { bg: 'bg-yellow-50',  border: 'border-yellow-300',  text: 'text-yellow-800',  dot: 'bg-yellow-400'  },
-  movie_genres: { bg: 'bg-lime-50',    border: 'border-lime-300',    text: 'text-lime-800',    dot: 'bg-lime-500'    },
-  people:       { bg: 'bg-cyan-50',    border: 'border-cyan-300',    text: 'text-cyan-800',    dot: 'bg-cyan-400'    },
-  directors:    { bg: 'bg-fuchsia-50', border: 'border-fuchsia-300', text: 'text-fuchsia-800', dot: 'bg-fuchsia-400' },
-};
+import { getPaletteColors } from '../../data/tableColors';
 
 export function PaletteTableCard({ table }: { table: Table }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
@@ -33,9 +9,7 @@ export function PaletteTableCard({ table }: { table: Table }) {
     data: { tableName: table.name },
   });
 
-  const colors = COLOR_CLASSES[table.name] ?? {
-    bg: 'bg-gray-50', border: 'border-gray-300', text: 'text-gray-800', dot: 'bg-gray-400',
-  };
+  const colors = getPaletteColors(table.name);
 
   const style = {
     transform: CSS.Translate.toString(transform),

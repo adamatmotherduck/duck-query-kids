@@ -44,7 +44,7 @@ export interface ContentBundle {
   projects: CustomProject[];
 }
 
-function isContentBundle(data: unknown): data is ContentBundle {
+export function isContentBundle(data: unknown): data is ContentBundle {
   if (!data || typeof data !== 'object') return false;
   const d = data as Record<string, unknown>;
   return Array.isArray(d['lessons']) && Array.isArray(d['projects']);
@@ -125,5 +125,3 @@ export function useCustomContent() {
     importBundle, isContentBundle,
   };
 }
-
-export { isContentBundle };
